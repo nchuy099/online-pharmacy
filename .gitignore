@@ -1,0 +1,16 @@
+craw-data
+agent-skills-build
+.agent
+.env
+.agents/
+init_db/
+products.json
+use-cases.md
+docs/
+.codex
+docker-compose-local.yml
+*.png
+gcp-service-account.json
+.pytest_cache
+script.txt
+*.save
