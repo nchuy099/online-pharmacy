@@ -1,0 +1,124 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.9'
+	id 'io.spring.dependency-management' version '1.1.7'
+	id 'jacoco'
+}
+
+group = 'com.nchuy099'
+version = '0.0.1-SNAPSHOT'
+description = 'Smart Pharma in Spring Boot'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
+
+    implementation platform("software.amazon.awssdk:bom:2.25.63")
+    implementation "software.amazon.awssdk:s3"
+
+	implementation 'org.postgresql:postgresql'
+
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-database-postgresql'
+
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+	
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+	finalizedBy tasks.named('jacocoTestReport')
+}
+
+tasks.named('compileJava') {
+    options.compilerArgs.add('-parameters')
+}
+
+jacoco {
+	toolVersion = '0.8.13'
+}
+
+def jacocoCoverageIncludes = [
+	'com/nchuy099/SmartPharma/analytics/job/**',
+	'com/nchuy099/SmartPharma/analytics/service/AnalyticsDashboardService.class',
+	'com/nchuy099/SmartPharma/analytics/service/AnalyticsSnapshotService.class',
+	'com/nchuy099/SmartPharma/catalog/service/LocationSyncService.class',
+	'com/nchuy099/SmartPharma/chat/service/ChatbotAiMetadataService*.class',
+	'com/nchuy099/SmartPharma/common/security/DatabaseJwtAuthenticationConverter.class',
+	'com/nchuy099/SmartPharma/consultation/service/AdminMedicalConsultationService.class',
+	'com/nchuy099/SmartPharma/event/service/impl/**',
+	'com/nchuy099/SmartPharma/inventory/service/InventoryService.class',
+	'com/nchuy099/SmartPharma/order/ghn/MockGHNService.class',
+	'com/nchuy099/SmartPharma/order/service/OrderService.class',
+	'com/nchuy099/SmartPharma/order/service/OrderStatusTransitionService.class',
+	'com/nchuy099/SmartPharma/recommendation/integration/RcmClient*.class',
+	'com/nchuy099/SmartPharma/recommendation/service/RecommendationService.class',
+	'com/nchuy099/SmartPharma/token/service/JwtTokenService.class',
+	'com/nchuy099/SmartPharma/user/service/RbacService.class'
+]
+
+def jacocoCoverageClassDirs = {
+	files(sourceSets.main.output.asFileTree.matching {
+		include jacocoCoverageIncludes
+	})
+}
+
+tasks.named('jacocoTestReport') {
+	dependsOn tasks.named('test')
+
+	reports {
+		xml.required = true
+		html.required = true
+		csv.required = false
+	}
+	classDirectories.setFrom(jacocoCoverageClassDirs())
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+	dependsOn tasks.named('test')
+	classDirectories.setFrom(jacocoCoverageClassDirs())
+
+	violationRules {
+		rule {
+			element = 'BUNDLE'
+			limit {
+				counter = 'LINE'
+				value = 'COVEREDRATIO'
+				minimum = 0.80
+			}
+		}
+	}
+}
+
+tasks.named('check') {
+	dependsOn tasks.named('jacocoTestCoverageVerification')
+}

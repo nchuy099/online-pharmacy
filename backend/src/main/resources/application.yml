@@ -1,0 +1,126 @@
+server:
+  port: 8080
+  forward-headers-strategy: framework
+
+spring:
+  output:
+    ansi:
+      enabled: ALWAYS
+
+  jpa:
+    hibernate:
+      # naming:
+      #   physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 500
+        order_inserts: true
+        order_updates: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/postgresql
+    baseline-on-migrate: true
+    baseline-version: '0'
+    
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+            redirect-uri: ${GOOGLE_OAUTH2_REDIRECT_URI}
+          facebook:
+            client-id: ${FACEBOOK_CLIENT_ID}
+            client-secret: ${FACEBOOK_CLIENT_SECRET}
+            scope:
+              - email
+              - public_profile
+            redirect-uri: ${FACEBOOK_OAUTH2_REDIRECT_URI}
+
+jwt:
+  access:
+    key: ${JWT_ACCESS_SECRET_KEY}
+    expireMins: ${JWT_ACCESS_EXPIRES_MINS}      
+  refresh:
+    key: ${JWT_REFRESH_SECRET_KEY}
+    expireDays: ${JWT_REFRESH_EXPIRES_DAYS}
+  reset:
+    key: ${JWT_RESET_PASSWORD_SECRET_KEY}
+    expireMins: ${JWT_RESET_PASSWORD_EXPIRES_MINS}    
+
+send-mail-service:
+  url: ${SEND_RESET_PASS_MAIL_API_URL}
+
+frontend:
+  url: ${FRONTEND_URL}
+
+app:
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI:${FRONTEND_URL}/oauth2/callback}
+
+chatbot-ai:
+  base-url: ${CHATBOT_AI_BASE_URL:http://chatbot-ai:8001}
+  internal-jwt-secret: ${CHATBOT_INTERNAL_JWT_SECRET:dev-chatbot-internal-secret-32bytes!!}
+  internal-jwt-issuer: ${CHATBOT_INTERNAL_JWT_ISSUER:smart-pharma-backend}
+  internal-jwt-audience: ${CHATBOT_INTERNAL_JWT_AUDIENCE:chatbot-ai}
+  internal-jwt-expire-seconds: ${CHATBOT_INTERNAL_JWT_EXPIRE_SECONDS:60}
+
+rcm-service:
+  base-url: ${RCM_SERVICE_BASE_URL:http://rcm-service:8002}
+  internal-jwt-secret: ${RCM_INTERNAL_JWT_SECRET:dev-rcm-internal-secret-32bytes!!}
+  internal-jwt-issuer: ${RCM_INTERNAL_JWT_ISSUER:smart-pharma-backend}
+  internal-jwt-audience: ${RCM_INTERNAL_JWT_AUDIENCE:rcm-service}
+  internal-jwt-expire-seconds: ${RCM_INTERNAL_JWT_EXPIRE_SECONDS:60}
+
+media-container-expiration-minutes: ${MEDIA_CONTAINER_EXPIRATION_MINS}
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET}
+    access-key-id: ${AWS_ACCESS_KEY_ID}
+    secret-access-key: ${AWS_SECRET_ACCESS_KEY}
+    region: ${AWS_REGION}
+
+webhook:
+  secret: ${WEBHOOK_SECRET}
+
+sepay:
+  apiKey: ${SEPAY_SECRET_KEY}
+  webhookUrl: ${SEPAY_WEBHOOK_URL}
+  accountNumber: ${SEPAY_ACCOUNT_NUMBER}
+  bankName: ${SEPAY_BANK_NAME}
+
+ghn:
+  token: ${GHN_TOKEN}
+  baseUrl: ${GHN_BASE_URL:https://dev-online-gateway.ghn.vn/shiip/public-api/}
+  shopId: ${GHN_SHOP_ID}
+
+admin:
+  super:
+    email: ${SUPER_ADMIN_EMAIL:superadmin@smartpharma.com}
+    password: ${SUPER_ADMIN_PASSWORD:superadmin}
+    fullName: ${SUPER_ADMIN_FULL_NAME:Super Admin}
+
+packageNamePrefix:  com.nchuy099.SmartPharma
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    root: INFO
+    com.nchuy099.SmartPharma: DEBUG
+    # org.hibernate.SQL: DEBUG
+    # org.hibernate.orm.jdbc.bind: TRACE
+
+analytics:
+  snapshot:
+    enabled: true
+    zone-id: Asia/Ho_Chi_Minh
+    current-day-cron: "0 */5 * * * *"
+    finalize-cron: "0 5 0 * * *"

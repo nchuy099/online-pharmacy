@@ -1,0 +1,23 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  datasource:
+    url: ${POSTGRES_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+
+ghn:
+  token: performance-mock-token
+  baseUrl: http://mock-ghn.local/
+  shopId: "1"
+  fromDistrictId: 11
+  fromWardCode: "00001"
+  returnPhone: "0900000000"
+  returnAddress: "Mock GHN return address"
+
+logging:
+  level:
+    root: INFO
+    com.nchuy099.SmartPharma: INFO
