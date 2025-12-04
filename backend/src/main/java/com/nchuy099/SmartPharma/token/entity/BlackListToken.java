@@ -1,0 +1,34 @@
+package com.nchuy099.SmartPharma.token.entity;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import com.nchuy099.SmartPharma.common.entity.AbstractEntity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+
+@Entity
+@Table(name = "blacklist_tokens")
+@Slf4j
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Getter
+@Setter
+public class BlackListToken extends AbstractEntity {
+
+    @Column(nullable = false, unique = true)
+    UUID jti;
+
+    @Column(nullable = false)
+    Instant expiresAt;
+
+}
