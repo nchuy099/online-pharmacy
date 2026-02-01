@@ -1,0 +1,129 @@
+.order-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid #f0f0f0;
+}
+
+.order-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.order-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.order-id {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.order-id-label {
+    font-size: 14px;
+    color: #666;
+}
+
+.order-id-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.order-status {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.status-pending {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.status-confirmed {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.status-shipping {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.status-completed {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+
+.status-cancelled {
+    background: #ffebee;
+    color: #d32f2f;
+}
+
+.order-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.order-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.order-info-label {
+    font-size: 14px;
+    color: #666;
+}
+
+.order-info-value {
+    font-size: 14px;
+    color: #1a1a1a;
+}
+
+.order-amount {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2563eb;
+}
+
+.order-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.btn-view-details {
+    padding: 8px 20px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-view-details:hover {
+    background: #1d4ed8;
+    transform: scale(1.02);
+}
+
+.btn-view-details:active {
+    transform: scale(0.98);
+}
