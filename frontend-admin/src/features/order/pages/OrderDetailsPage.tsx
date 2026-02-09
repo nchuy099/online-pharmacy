@@ -1,0 +1,281 @@
+import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useOrderDetails } from '../hooks/useOrderDetails';
+import OrderCard from '../components/OrderCard';
+import PaymentCard from '../components/PaymentCard';
+import { PageHeader } from '../../../shared/components';
+import { Modal } from '../../../shared/components/ui';
+import orderService from '../services';
+
+const getShippingServiceName = (serviceId?: number) => {
+    if (serviceId === 1) return 'GHN Nhanh';
+    if (serviceId === 2) return 'GHN Tiêu chuẩn';
+    if (serviceId === 3) return 'GHN Tiết kiệm';
+    return 'GHN Tiêu chuẩn';
+};
+
+const GHN_STATUS_LABELS: Record<string, string> = {
+    ready_to_pick: 'Chờ lấy hàng',
+    picking: 'Đang lấy hàng',
+    cancel: 'Đã hủy',
+    money_collect_picking: 'Thu tiền người gửi',
+    picked: 'Đã lấy hàng',
+    storing: 'Đang ở kho',
+    transporting: 'Đang trung chuyển',
+    sorting: 'Đang phân loại',
+    delivering: 'Đang giao',
+    money_collect_delivering: 'Thu tiền người nhận',
+    delivered: 'Giao thành công',
+    delivery_fail: 'Giao thất bại',
+    waiting_to_return: 'Chờ hoàn hàng',
+    return: 'Đang hoàn hàng',
+    return_transporting: 'Đang chuyển hoàn',
+    return_sorting: 'Phân loại hàng hoàn',
+    returning: 'Đang trả hàng',
+    return_fail: 'Trả hàng thất bại',
+    returned: 'Trả hàng thành công',
+    exception: 'Ngoại lệ',
+    damage: 'Hư hỏng',
+    lost: 'Thất lạc',
+};
+
+const getGhnStatusLabel = (status?: string) => {
+    if (!status) return '-';
+    const normalized = status.toLowerCase();
+    return GHN_STATUS_LABELS[normalized] || status;
+};
+
+const OrderDetailsPage: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const { order, isLoading, error, refresh } = useOrderDetails(id);
+    const [isConfirming, setIsConfirming] = React.useState(false);
+    const [isShipping, setIsShipping] = React.useState(false);
+    const [isShipConfirmOpen, setIsShipConfirmOpen] = React.useState(false);
+
+    const handleConfirm = async () => {
+        if (!id) return;
+        try {
+            setIsConfirming(true);
+            await orderService.confirmOrder(id);
+            await refresh();
+        } catch (err) {
+            alert('Lỗi xác nhận đơn hàng');
+        } finally {
+            setIsConfirming(false);
+        }
+    };
+
+    const handleShip = async () => {
+        if (!id) return;
+        try {
+            setIsShipping(true);
+            await orderService.shipOrder(id);
+            await refresh();
+            setIsShipConfirmOpen(false);
+        } catch (err) {
+            alert('Lỗi tạo đơn giao hàng');
+        } finally {
+            setIsShipping(false);
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+        );
+    }
+
+    if (error || !order) {
+        return (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl">
+                <h3 className="text-lg font-semibold">Lỗi tải dữ liệu</h3>
+                <p>{error?.message || 'Không tìm thấy đơn hàng'}</p>
+                <button
+                    onClick={() => navigate('/orders')}
+                    className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                    Quay lại danh sách
+                </button>
+            </div>
+        );
+    }
+
+    const receiverName = order.address?.fullName || order.shipment?.toName || '-';
+    const receiverPhone = order.address?.phoneNumber || order.shipment?.toPhone || '-';
+    const receiverAddress = order.address?.fullAddress || order.address?.address || order.shipment?.toAddress || '-';
+    const shippingServiceName = getShippingServiceName(order.ghnServiceId);
+    const shippingFeeText = typeof order.shippingFee === 'number'
+        ? `${order.shippingFee.toLocaleString('vi-VN')} đ`
+        : '-';
+    const expectedDeliveryText = order.expectedDeliveryTime
+        ? new Date(order.expectedDeliveryTime * 1000).toLocaleString('vi-VN')
+        : '-';
+    const shippingCode = order.shipment?.orderCode || '-';
+    const shippingStatusLabel = getGhnStatusLabel(order.shipment?.status);
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <PageHeader
+                    title={`Đơn hàng #${order.orderCode}`}
+                    description="Xem chi tiết các mặt hàng và thông tin thanh toán"
+                    onBack={() => navigate('/orders')}
+                />
+                
+                <div className="flex items-center gap-3 mt-4 sm:mt-0">
+                    {order.status === 'PENDING' && (
+                        <button
+                            onClick={handleConfirm}
+                            disabled={isConfirming}
+                            className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
+                        >
+                            {isConfirming ? 'Đang xác nhận...' : 'Xác nhận đơn'}
+                        </button>
+                    )}
+                    {order.status === 'PROCESSING' && (
+                        <button
+                            onClick={() => setIsShipConfirmOpen(true)}
+                            disabled={isShipping}
+                            className="px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors shadow-sm"
+                        >
+                            {isShipping ? 'Đang tạo...' : 'Tạo đơn GHN'}
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                    <OrderCard order={order} />
+                    {/*
+                    {order.shipment && (
+                        <ShipmentCard
+                            shipment={order.shipment}
+                            receiverAddress={receiverAddress}
+                            shippingServiceName={shippingServiceName}
+                            shippingFeeText={shippingFeeText}
+                            expectedDeliveryText={expectedDeliveryText}
+                        />
+                    )}
+                    */}
+                </div>
+                <div className="space-y-6">
+                    <PaymentCard payment={order.payment} />
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">Thông tin vận chuyển</h3>
+                                <p className="text-xs text-gray-500 mt-1">Mã vận đơn GHN: {shippingCode}</p>
+                            </div>
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200 whitespace-nowrap">
+                                {shippingStatusLabel}
+                            </span>
+                        </div>
+                        <div className="space-y-3 text-sm">
+                            <div>
+                                <p className="text-gray-500">Người nhận</p>
+                                <p className="font-semibold text-gray-900">{receiverName}</p>
+                            </div>
+                            <div>
+                                <p className="text-gray-500">Số điện thoại</p>
+                                <p className="font-semibold text-gray-900">{receiverPhone}</p>
+                            </div>
+                            <div>
+                                <p className="text-gray-500">Địa chỉ giao hàng</p>
+                                <p className="font-semibold text-gray-900">{receiverAddress}</p>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <p className="text-gray-500">Dịch vụ vận chuyển</p>
+                                    <p className="font-semibold text-gray-900">{shippingServiceName}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-500">Phí vận chuyển</p>
+                                    <p className="font-semibold text-gray-900">{shippingFeeText}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-gray-500">Dự kiến giao</p>
+                                <p className="font-semibold text-gray-900">{expectedDeliveryText}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <Modal
+                isOpen={isShipConfirmOpen}
+                onClose={() => !isShipping && setIsShipConfirmOpen(false)}
+                title="Xác nhận tạo đơn GHN"
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-600">
+                        Vui lòng kiểm tra thông tin vận chuyển trước khi tạo đơn giao hàng.
+                    </p>
+
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                        <div className="text-sm">
+                            <div>
+                                <p className="text-slate-500">Mã đơn hàng</p>
+                                <p className="font-semibold text-slate-900">#{order.orderCode}</p>
+                            </div>
+                        </div>
+
+                        <div className="text-sm">
+                            <p className="text-slate-500">Người nhận</p>
+                            <p className="font-semibold text-slate-900">{receiverName}</p>
+                        </div>
+
+                        <div className="text-sm">
+                            <p className="text-slate-500">Số điện thoại</p>
+                            <p className="font-semibold text-slate-900">{receiverPhone}</p>
+                        </div>
+
+                        <div className="text-sm">
+                            <p className="text-slate-500">Địa chỉ giao hàng</p>
+                            <p className="font-semibold text-slate-900">{receiverAddress}</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <p className="text-slate-500">Dịch vụ vận chuyển</p>
+                                <p className="font-semibold text-slate-900">{shippingServiceName}</p>
+                            </div>
+                            <div>
+                                <p className="text-slate-500">Phí vận chuyển</p>
+                                <p className="font-semibold text-slate-900">{shippingFeeText}</p>
+                            </div>
+                        </div>
+
+                        <div className="text-sm">
+                            <p className="text-slate-500">Dự kiến giao</p>
+                            <p className="font-semibold text-slate-900">{expectedDeliveryText}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                        <button
+                            onClick={() => setIsShipConfirmOpen(false)}
+                            disabled={isShipping}
+                            className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50 transition-colors"
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            onClick={handleShip}
+                            disabled={isShipping}
+                            className="px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors shadow-sm"
+                        >
+                            {isShipping ? 'Đang tạo...' : 'Xác nhận tạo GHN'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+        </div>
+    );
+};
+
+export default OrderDetailsPage;
