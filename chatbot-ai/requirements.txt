@@ -1,0 +1,17 @@
+# API runtime
+fastapi>=0.110,<1.0
+uvicorn>=0.30,<1.0
+pydantic>=2.7,<3.0
+pydantic-settings>=2.2,<3.0
+
+# LLM / RAG stack
+cohere>=5.0,<6.0
+qdrant-client>=1.9,<2.0
+google-genai>=1.0,<2.0
+
+# Database
+psycopg2-binary>=2.9,<3.0
+
+# Script utilities
+python-dotenv>=1.0,<2.0
+beautifulsoup4>=4.12,<5.0
