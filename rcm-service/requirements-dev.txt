@@ -1,0 +1,13 @@
+# Development/test/script dependencies
+-r requirements.txt
+requests
+pytest
+
+# Optional ML/research stack (not required by runtime service)
+numpy
+joblib
+pandas
+scipy
+scikit-learn
+implicit
+lightgbm
