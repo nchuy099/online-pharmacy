@@ -1,0 +1,6 @@
+.env
+drug-dataset/
+drug-dataset.zip
+venv/
+__pycache__/
+*.json
