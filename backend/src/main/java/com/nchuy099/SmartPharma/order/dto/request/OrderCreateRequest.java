@@ -31,4 +31,7 @@ public class OrderCreateRequest {
 
     @Schema(description = "Optional note to attach to the order")
     private String note;
+
+    @Schema(description = "Flash sale reservation token when checkout uses flash sale stock")
+    private UUID flashSaleReservationId;
 }

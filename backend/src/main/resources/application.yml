@@ -7,6 +7,11 @@ spring:
     ansi:
       enabled: ALWAYS
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   jpa:
     hibernate:
       # naming:
@@ -124,3 +129,18 @@ analytics:
     zone-id: Asia/Ho_Chi_Minh
     current-day-cron: "0 */5 * * * *"
     finalize-cron: "0 5 0 * * *"
+
+flash-sale:
+  reservation-ttl-seconds: ${FLASH_SALE_RESERVATION_TTL_SECONDS:300}
+  expiry-scan-ms: ${FLASH_SALE_EXPIRY_SCAN_MS:60000}
+  cache:
+    campaign-ttl-seconds: ${FLASH_SALE_CACHE_CAMPAIGN_TTL_SECONDS:30}
+    item-ttl-seconds: ${FLASH_SALE_CACHE_ITEM_TTL_SECONDS:15}
+  auto-generation:
+    enabled: ${FLASH_SALE_AUTO_GENERATION_ENABLED:true}
+    cron: ${FLASH_SALE_AUTO_GENERATION_CRON:0 5 0 * * *}
+    zone-id: ${FLASH_SALE_AUTO_GENERATION_ZONE_ID:Asia/Ho_Chi_Minh}
+    daily-item-count: ${FLASH_SALE_AUTO_GENERATION_DAILY_ITEM_COUNT:10}
+    discount-percent: ${FLASH_SALE_AUTO_GENERATION_DISCOUNT_PERCENT:20}
+    sale-stock-per-item: ${FLASH_SALE_AUTO_GENERATION_SALE_STOCK_PER_ITEM:10}
+    per-user-limit: ${FLASH_SALE_AUTO_GENERATION_PER_USER_LIMIT:1}

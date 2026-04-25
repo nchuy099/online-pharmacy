@@ -26,6 +26,7 @@ import org.springframework.data.domain.PageRequest;
 
 import com.nchuy099.SmartPharma.common.utils.SecurityUtils;
 import com.nchuy099.SmartPharma.inventory.entity.InventoryEntity;
+import com.nchuy099.SmartPharma.flashsale.dto.response.FlashSaleReservationView;
 import com.nchuy099.SmartPharma.order.domain.OrderDomainService;
 import com.nchuy099.SmartPharma.order.checkout.entity.CheckoutQuoteEntity;
 import com.nchuy099.SmartPharma.order.checkout.service.CheckoutQuoteService;
@@ -65,6 +66,9 @@ class OrderServiceTest {
     private CheckoutQuoteService checkoutQuoteService;
     private com.nchuy099.SmartPharma.order.ghn.GHNService ghnService;
     private OrderStatusTransitionService orderStatusTransitionService;
+    private com.nchuy099.SmartPharma.flashsale.service.FlashSaleService flashSaleService;
+    private com.nchuy099.SmartPharma.cart.service.CartService cartService;
+    private com.nchuy099.SmartPharma.event.service.EventService eventService;
     private OrderService orderService;
 
     @BeforeEach
@@ -79,6 +83,9 @@ class OrderServiceTest {
         checkoutQuoteService = mock(CheckoutQuoteService.class);
         ghnService = mock(com.nchuy099.SmartPharma.order.ghn.GHNService.class);
         orderStatusTransitionService = spy(new OrderStatusTransitionService());
+        flashSaleService = mock(com.nchuy099.SmartPharma.flashsale.service.FlashSaleService.class);
+        cartService = mock(com.nchuy099.SmartPharma.cart.service.CartService.class);
+        eventService = mock(com.nchuy099.SmartPharma.event.service.EventService.class);
 
         orderService = new OrderService(
                 orderRepository,
@@ -87,12 +94,13 @@ class OrderServiceTest {
                 orderDomainService,
                 inventoryDomainService,
                 orderMapper,
-                mock(com.nchuy099.SmartPharma.cart.service.CartService.class),
+                cartService,
                 addressRepository,
                 checkoutQuoteService,
                 ghnService,
-                mock(com.nchuy099.SmartPharma.event.service.EventService.class),
-                orderStatusTransitionService);
+                eventService,
+                orderStatusTransitionService,
+                flashSaleService);
     }
 
     @Test
@@ -421,6 +429,283 @@ class OrderServiceTest {
         assertEquals(Integer.valueOf(2), order.getGhnServiceId());
         assertEquals(Long.valueOf(1_725_876_000L), order.getExpectedDeliveryTime());
         verifyNoInteractions(ghnService);
+    }
+
+    @Test
+    void previewShouldUseFlashSaleReservationForBuyNow() {
+        UUID userId = UUID.randomUUID();
+        UUID variantId = UUID.randomUUID();
+        UUID reservationId = UUID.randomUUID();
+
+        ProductEntity product = ProductEntity.builder()
+                .name("Vitamin C")
+                .slug("vitamin-c")
+                .webName("Vitamin C")
+                .build();
+        product.setId(UUID.randomUUID());
+
+        ProductVariantEntity variant = ProductVariantEntity.builder()
+                .product(product)
+                .sku("VITC-001")
+                .unitType("box")
+                .salePrice(new BigDecimal("120000"))
+                .build();
+        variant.setId(variantId);
+
+        var inventory = InventoryEntity.builder()
+                .variant(variant)
+                .quantityOnHand(20)
+                .quantityReserved(0)
+                .build();
+
+        FlashSaleReservationView reservation = FlashSaleReservationView.builder()
+                .reservationId(reservationId)
+                .variantId(variantId)
+                .quantity(2)
+                .flashPrice(new BigDecimal("99000"))
+                .build();
+
+        PreviewResponse.PreviewItemDto previewItem = PreviewResponse.PreviewItemDto.builder()
+                .variantId(variantId.toString())
+                .quantity(2)
+                .build();
+        PreviewResponse preview = PreviewResponse.builder()
+                .itemTotalAmount(new BigDecimal("198000"))
+                .finalAmount(new BigDecimal("198000"))
+                .items(new java.util.ArrayList<>(List.of(previewItem)))
+                .build();
+
+        OrderPreviewRequest req = new OrderPreviewRequest();
+        req.setMode("BUY_NOW");
+        req.setFlashSaleReservationId(reservationId);
+        BuyNowItemDto buyNowItem = new BuyNowItemDto();
+        buyNowItem.setVariantId(variantId.toString());
+        buyNowItem.setQuantity(2);
+        req.setBuyNowItem(buyNowItem);
+
+        when(securityUtils.getCurrentUserId()).thenReturn(userId);
+        when(inventoryDomainService.getInventory(variantId.toString())).thenReturn(inventory);
+        when(flashSaleService.resolveReservationForCheckout(reservationId, userId)).thenReturn(reservation);
+        when(orderDomainService.calculateAmount(variant, 2, reservation.getFlashPrice()))
+                .thenReturn(new BigDecimal("198000"));
+        when(orderMapper.toBuyNowPreview(variant, 2, new BigDecimal("198000"), reservation.getFlashPrice()))
+                .thenReturn(preview);
+
+        PreviewResponse response = orderService.preview(req);
+
+        assertNotNull(response);
+        assertEquals(new BigDecimal("198000"), response.getFinalAmount());
+        assertEquals(reservationId, response.getItems().get(0).getFlashSaleReservationId());
+    }
+
+    @Test
+    void createShouldConfirmFlashSaleReservationWhenBuyNowUsesFlashSale() {
+        UUID userId = UUID.randomUUID();
+        UUID quoteId = UUID.randomUUID();
+        UUID variantId = UUID.randomUUID();
+        UUID addressId = UUID.randomUUID();
+        UUID reservationId = UUID.randomUUID();
+
+        UserEntity user = new UserEntity();
+        user.setId(userId);
+
+        AddressEntity address = AddressEntity.builder()
+                .fullName("Nguyen Van A")
+                .phoneNumber("0900000000")
+                .address("123 Le Loi")
+                .ghnDistrictId(2)
+                .ghnWardCode("W1")
+                .provinceName("Ho Chi Minh")
+                .districtName("District 1")
+                .wardName("Ward 1")
+                .build();
+        address.setId(addressId);
+
+        ProductEntity product = ProductEntity.builder()
+                .name("Paracetamol")
+                .slug("paracetamol")
+                .webName("Paracetamol")
+                .build();
+        product.setId(UUID.randomUUID());
+
+        ProductVariantEntity variant = ProductVariantEntity.builder()
+                .product(product)
+                .sku("PARA-500")
+                .unitType("box")
+                .salePrice(new BigDecimal("120000"))
+                .build();
+        variant.setId(variantId);
+
+        CheckoutQuoteEntity quote = CheckoutQuoteEntity.builder()
+                .addressId(addressId)
+                .shippingFee(new BigDecimal("18000"))
+                .shippingServiceId(2)
+                .expectedDeliveryTime(1_725_876_000L)
+                .expiresAt(Instant.now().plusSeconds(300))
+                .build();
+        quote.setId(quoteId);
+
+        var inventory = InventoryEntity.builder()
+                .variant(variant)
+                .quantityOnHand(10)
+                .quantityReserved(0)
+                .build();
+
+        FlashSaleReservationView reservation = FlashSaleReservationView.builder()
+                .reservationId(reservationId)
+                .variantId(variantId)
+                .quantity(2)
+                .flashPrice(new BigDecimal("99000"))
+                .build();
+
+        var payment = PaymentEntity.builder()
+                .amount(new BigDecimal("216000"))
+                .method(PaymentMethod.BANK_TRANSFER)
+                .status(PaymentStatus.INITIATED)
+                .build();
+        OrderEntity order = OrderEntity.builder()
+                .orderCode("ORD260514FLASH123")
+                .status(OrderStatus.PENDING)
+                .itemTotalAmount(new BigDecimal("198000"))
+                .finalAmount(new BigDecimal("216000"))
+                .shippingFee(new BigDecimal("18000"))
+                .build();
+        order.setId(UUID.randomUUID());
+        order.setPayment(payment);
+        order.addItem(OrderItemEntity.builder()
+                .product(product)
+                .variant(variant)
+                .quantity(2)
+                .unitPrice(new BigDecimal("99000"))
+                .totalPrice(new BigDecimal("198000"))
+                .snapshotProductName(product.getName())
+                .snapshotSku(variant.getSku())
+                .snapshotUnit(variant.getUnit())
+                .snapshotPrimaryImage(null)
+                .build());
+
+        OrderCreateRequest req = new OrderCreateRequest();
+        req.setCheckoutQuoteId(quoteId);
+        req.setPaymentMethod("BANK_TRANSFER");
+        req.setMode("BUY_NOW");
+        req.setFlashSaleReservationId(reservationId);
+        BuyNowItemDto buyNowItem = new BuyNowItemDto();
+        buyNowItem.setVariantId(variantId.toString());
+        buyNowItem.setQuantity(2);
+        req.setBuyNowItem(buyNowItem);
+
+        when(securityUtils.getCurrentUserId()).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
+        when(checkoutQuoteService.getValidQuoteForUpdate(quoteId, userId)).thenReturn(quote);
+        when(addressRepository.findByIdAndUserId(addressId, userId)).thenReturn(java.util.Optional.of(address));
+        when(inventoryDomainService.getInventory(variantId.toString())).thenReturn(inventory);
+        when(flashSaleService.resolveReservationForCheckout(reservationId, userId)).thenReturn(reservation);
+        when(orderDomainService.buildBuyNowOrder(user, null, variant, 2, PaymentMethod.BANK_TRANSFER, reservation.getFlashPrice()))
+                .thenReturn(order);
+        when(orderRepository.save(any(OrderEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(orderMapper.toOrderResponse(any(OrderEntity.class)))
+                .thenReturn(OrderResponse.builder().id(order.getOrderCode()).build());
+
+        OrderResponse response = orderService.create(req);
+
+        assertNotNull(response);
+        assertEquals(order.getOrderCode(), response.getId());
+        assertEquals(reservationId, order.getFlashSaleReservationId());
+        verify(flashSaleService).confirmReservation(reservationId, userId, order.getId());
+    }
+
+    @Test
+    void createShouldReleaseFlashSaleReservationWhenBuyNowFails() {
+        UUID userId = UUID.randomUUID();
+        UUID quoteId = UUID.randomUUID();
+        UUID variantId = UUID.randomUUID();
+        UUID addressId = UUID.randomUUID();
+        UUID reservationId = UUID.randomUUID();
+
+        UserEntity user = new UserEntity();
+        user.setId(userId);
+
+        AddressEntity address = AddressEntity.builder()
+                .fullName("Nguyen Van A")
+                .phoneNumber("0900000000")
+                .address("123 Le Loi")
+                .ghnDistrictId(2)
+                .ghnWardCode("W1")
+                .provinceName("Ho Chi Minh")
+                .districtName("District 1")
+                .wardName("Ward 1")
+                .build();
+        address.setId(addressId);
+
+        ProductEntity product = ProductEntity.builder()
+                .name("Paracetamol")
+                .slug("paracetamol")
+                .webName("Paracetamol")
+                .build();
+        product.setId(UUID.randomUUID());
+
+        ProductVariantEntity variant = ProductVariantEntity.builder()
+                .product(product)
+                .sku("PARA-500")
+                .unitType("box")
+                .salePrice(new BigDecimal("120000"))
+                .build();
+        variant.setId(variantId);
+
+        CheckoutQuoteEntity quote = CheckoutQuoteEntity.builder()
+                .addressId(addressId)
+                .shippingFee(new BigDecimal("18000"))
+                .shippingServiceId(2)
+                .expectedDeliveryTime(1_725_876_000L)
+                .expiresAt(Instant.now().plusSeconds(300))
+                .build();
+        quote.setId(quoteId);
+
+        var inventory = InventoryEntity.builder()
+                .variant(variant)
+                .quantityOnHand(10)
+                .quantityReserved(0)
+                .build();
+
+        FlashSaleReservationView reservation = FlashSaleReservationView.builder()
+                .reservationId(reservationId)
+                .variantId(variantId)
+                .quantity(2)
+                .flashPrice(new BigDecimal("99000"))
+                .build();
+
+        OrderEntity order = OrderEntity.builder()
+                .orderCode("ORD260514FLASHFAIL")
+                .status(OrderStatus.PENDING)
+                .itemTotalAmount(new BigDecimal("198000"))
+                .finalAmount(new BigDecimal("216000"))
+                .shippingFee(new BigDecimal("18000"))
+                .build();
+
+        OrderCreateRequest req = new OrderCreateRequest();
+        req.setCheckoutQuoteId(quoteId);
+        req.setPaymentMethod("BANK_TRANSFER");
+        req.setMode("BUY_NOW");
+        req.setFlashSaleReservationId(reservationId);
+        BuyNowItemDto buyNowItem = new BuyNowItemDto();
+        buyNowItem.setVariantId(variantId.toString());
+        buyNowItem.setQuantity(2);
+        req.setBuyNowItem(buyNowItem);
+
+        when(securityUtils.getCurrentUserId()).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
+        when(checkoutQuoteService.getValidQuoteForUpdate(quoteId, userId)).thenReturn(quote);
+        when(addressRepository.findByIdAndUserId(addressId, userId)).thenReturn(java.util.Optional.of(address));
+        when(inventoryDomainService.getInventory(variantId.toString())).thenReturn(inventory);
+        when(flashSaleService.resolveReservationForCheckout(reservationId, userId)).thenReturn(reservation);
+        when(orderDomainService.buildBuyNowOrder(user, null, variant, 2, PaymentMethod.BANK_TRANSFER, reservation.getFlashPrice()))
+                .thenReturn(order);
+        when(orderRepository.save(any(OrderEntity.class))).thenThrow(new RuntimeException("db fail"));
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> orderService.create(req));
+
+        assertEquals("db fail", exception.getMessage());
+        verify(flashSaleService).releaseReservation(reservationId, userId);
     }
 
     @Test

@@ -7,6 +7,8 @@ import UserAddressPage from "@/features/user/pages/UserAddressPage";
 import PrescriptionsPage from "@/features/user/pages/PrescriptionsPage";
 import SlugDispatchPage from "@/features/product/pages/SlugDispatchPage";
 import { HomePage } from "@/features/home/pages/HomePage";
+import { FlashSalePage } from "@/features/flash-sale/pages/FlashSalePage";
+import FlashSaleEventPage from "@/features/flash-sale/pages/FlashSaleEventPage";
 import { CartPage } from "@/features/cart/pages/CartPage";
 import { CheckoutPage } from "@/features/order/pages/CheckoutPage";
 import { OrderDetailsPage } from "@/features/order/pages/OrderDetailsPage";
@@ -39,6 +41,14 @@ export const router = createBrowserRouter([
             {
                 path: "/",
                 element: <HomePage />
+            },
+            {
+                path: "/flash-sales",
+                element: <FlashSalePage />
+            },
+            {
+                path: "/flash-sales/events/:campaignCode",
+                element: <FlashSaleEventPage />
             },
             {
                 path: "/me",

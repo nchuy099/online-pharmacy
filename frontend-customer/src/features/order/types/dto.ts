@@ -62,6 +62,7 @@ export interface CreateOrderCheckoutReqDTO {
     addressId?: string;
     serviceId?: number;
     note?: string;
+    flashSaleReservationId?: string;
 }
 
 export interface CreateOrderReqDTO {
@@ -70,6 +71,7 @@ export interface CreateOrderReqDTO {
     mode: OrderMode;
     buyNowItem?: BuyNowItemDTO;
     note?: string;
+    flashSaleReservationId?: string;
 }
 
 export interface UpdateOrderDeliveryInfoReqDTO {

@@ -121,6 +121,7 @@ public class OrderResponse {
         private String productImageUrl;
         private Integer quantity;
         private BigDecimal unitPrice;
+        private java.util.UUID flashSaleReservationId;
         private ReviewDto review;
 
         @Getter

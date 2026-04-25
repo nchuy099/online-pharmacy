@@ -15,6 +15,9 @@ import { toast } from "react-hot-toast";
 import { useEventTracking } from "@/features/shared/hooks/useEventTracking";
 import { EventType } from "@/features/shared/types/event";
 import { useRecommendedProducts } from "@/features/recommendation/hooks/useRecommendedProducts";
+import { flashSaleApi } from "@/features/flash-sale/api/flashSale.api";
+import { useFlashSaleStock } from "@/features/flash-sale/hooks/useFlashSaleStock";
+import { getLiveFlashSale } from "../product.utils";
 
 const ProductDetailsPage: React.FC = () => {
     const { "*": slug } = useParams<{ "*": string }>();
@@ -39,6 +42,8 @@ const ProductDetailsPage: React.FC = () => {
 
     const [quantity, setQuantity] = React.useState(1);
     const [activeImage, setActiveImage] = React.useState<string | null>(null);
+    const liveFlashSale = getLiveFlashSale(selectedVariant);
+    const { remainingStock: liveFlashSaleRemainingStock } = useFlashSaleStock(liveFlashSale?.id);
 
     React.useEffect(() => {
         if (product) {
@@ -82,7 +87,7 @@ const ProductDetailsPage: React.FC = () => {
         });
     };
 
-    const handleBuyNow = () => {
+    const handleBuyNow = async () => {
         if (!product || !selectedVariant) return;
         if (!user) {
             openAuthModal();
@@ -92,8 +97,23 @@ const ProductDetailsPage: React.FC = () => {
         track(EventType.CHECKOUT, product.id, {
             variantId: selectedVariant.id,
             quantity,
-            price: selectedVariant.salePrice,
+            price: liveFlashSale?.flashPrice ?? selectedVariant.salePrice,
         });
+
+        if (liveFlashSale?.id) {
+            try {
+                const reservation = await flashSaleApi.claim(liveFlashSale.id, {
+                    quantity,
+                    idempotencyKey: crypto.randomUUID(),
+                });
+                navigate(`/checkout?mode=BUY_NOW&variantId=${selectedVariant.id}&quantity=${quantity}&flashSaleReservationId=${reservation.reservationId}`);
+                return;
+            } catch (error) {
+                const message = error instanceof Error ? error.message : "Không thể giữ chỗ flash sale";
+                toast.error(message);
+                return;
+            }
+        }
 
         navigate(`/checkout?mode=BUY_NOW&variantId=${selectedVariant.id}&quantity=${quantity}`);
     };
@@ -163,6 +183,7 @@ const ProductDetailsPage: React.FC = () => {
                                 onAddToCart={handleAddToCart}
                                 onBuyNow={handleBuyNow}
                                 isProcessing={addToCartMutation.isPending}
+                                liveFlashSaleRemainingStock={liveFlashSaleRemainingStock}
                             />
                         </div>
                     </div>

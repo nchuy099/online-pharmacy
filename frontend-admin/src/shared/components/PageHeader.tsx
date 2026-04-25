@@ -4,9 +4,9 @@ import { FaArrowLeft } from 'react-icons/fa';
 interface PageHeaderProps {
     title: React.ReactNode;
     description?: string;
-    actionLabel?: string;
+    actionLabel?: React.ReactNode;
     onAction?: () => void;
-    secondaryActionLabel?: string;
+    secondaryActionLabel?: React.ReactNode;
     onSecondaryAction?: () => void;
     onBack?: () => void;
     actionClassName?: string;

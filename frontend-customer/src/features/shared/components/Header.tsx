@@ -53,7 +53,7 @@ export const Header = () => {
         <div className="flex flex-col">
             {/* Top bar - Optional utility links for premium feel */}
             <div className="bg-[#001737] text-white py-1.5 px-6 hidden md:block">
-                <div className="max-w-7xl mx-auto flex justify-between items-center text-[12px] font-medium opacity-90">
+                <div className="mx-auto flex max-w-[1500px] justify-between items-center text-[12px] font-medium opacity-90">
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-1.5">
                             <FaPhone className="text-emerald-400" />
@@ -73,7 +73,7 @@ export const Header = () => {
 
             {/* DESKTOP HEADER */}
             <header className="hidden md:block sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 font-primary transition-all duration-300">
-                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-8">
+                <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-8 px-6 py-4">
                     {/* Logo Section */}
                     <Link to="/" className="flex items-center gap-3 min-w-fit group">
                         <div className="w-11 h-11 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-[14px] flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform duration-300">

@@ -39,6 +39,8 @@ import com.nchuy099.SmartPharma.order.dto.response.OrderPageResponse;
 import com.nchuy099.SmartPharma.order.dto.response.OrderResponse;
 import com.nchuy099.SmartPharma.order.dto.response.PreviewResponse;
 import com.nchuy099.SmartPharma.inventory.service.InventoryDomainService;
+import com.nchuy099.SmartPharma.flashsale.service.FlashSaleService;
+import com.nchuy099.SmartPharma.flashsale.dto.response.FlashSaleReservationView;
 import com.nchuy099.SmartPharma.user.entity.AddressEntity;
 import com.nchuy099.SmartPharma.user.entity.UserEntity;
 import com.nchuy099.SmartPharma.user.repository.AddressRepository;
@@ -66,6 +68,7 @@ public class OrderService {
     private final com.nchuy099.SmartPharma.order.ghn.GHNService ghnService;
     private final EventService eventService;
     private final OrderStatusTransitionService orderStatusTransitionService;
+    private final FlashSaleService flashSaleService;
 
     // ===== PREVIEW =====
     @Transactional
@@ -118,8 +121,14 @@ public class OrderService {
             if (mode == OrderMode.BUY_NOW) {
                 var buyItem = req.getBuyNowItem();
                 var inventory = inventoryDomainService.getInventory(buyItem.getVariantId());
-                tempOrder = orderDomainService.buildBuyNowOrder(null, null, inventory.getVariant(),
-                        buyItem.getQuantity(), PaymentMethod.VNPAY);
+                if (req.getFlashSaleReservationId() != null) {
+                    FlashSaleReservationView reservation = flashSaleService.resolveReservationForCheckout(req.getFlashSaleReservationId(), currentUserId);
+                    tempOrder = orderDomainService.buildBuyNowOrder(null, null, inventory.getVariant(),
+                            buyItem.getQuantity(), PaymentMethod.VNPAY, reservation.getFlashPrice());
+                } else {
+                    tempOrder = orderDomainService.buildBuyNowOrder(null, null, inventory.getVariant(),
+                            buyItem.getQuantity(), PaymentMethod.VNPAY);
+                }
             } else {
                 UUID userId = securityUtils.getCurrentUserId();
                 var cartItems = cartService.getSelectedCartItems(userId);
@@ -181,55 +190,82 @@ public class OrderService {
 
         OrderEntity order;
         List<CartItemEntity> cartItems = null;
-        if (mode == OrderMode.BUY_NOW) {
-            if (req.getBuyNowItem() == null || !org.springframework.util.StringUtils.hasText(req.getBuyNowItem().getVariantId())
-                    || req.getBuyNowItem().getQuantity() == null || req.getBuyNowItem().getQuantity() <= 0) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "BUY_NOW requires valid buyNowItem.variantId and quantity > 0");
+        try {
+            if (mode == OrderMode.BUY_NOW) {
+                if (req.getBuyNowItem() == null || !org.springframework.util.StringUtils.hasText(req.getBuyNowItem().getVariantId())
+                        || req.getBuyNowItem().getQuantity() == null || req.getBuyNowItem().getQuantity() <= 0) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "BUY_NOW requires valid buyNowItem.variantId and quantity > 0");
+                }
+                var inventory = inventoryDomainService.getInventory(req.getBuyNowItem().getVariantId());
+                if (req.getFlashSaleReservationId() != null) {
+                    FlashSaleReservationView reservation = flashSaleService.resolveReservationForCheckout(req.getFlashSaleReservationId(), userId);
+                    if (!reservation.getVariantId().toString().equals(req.getBuyNowItem().getVariantId())) {
+                        throw new AppException(ErrorCode.CONFLICT, "Flash sale reservation does not match selected item");
+                    }
+                    if (!reservation.getQuantity().equals(req.getBuyNowItem().getQuantity())) {
+                        throw new AppException(ErrorCode.CONFLICT, "Flash sale reservation quantity mismatch");
+                    }
+                    order = orderDomainService.buildBuyNowOrder(user, req.getNote(), inventory.getVariant(),
+                            req.getBuyNowItem().getQuantity(), paymentMethod, reservation.getFlashPrice());
+                    order.setFlashSaleReservationId(req.getFlashSaleReservationId());
+                } else {
+                    inventoryDomainService.reserve(inventory, req.getBuyNowItem().getQuantity());
+                    order = orderDomainService.buildBuyNowOrder(user, req.getNote(), inventory.getVariant(),
+                            req.getBuyNowItem().getQuantity(), paymentMethod);
+                }
+            } else {
+                cartItems = cartService.getSelectedCartItems(userId);
+                inventoryDomainService.reserveCart(cartItems);
+                order = orderDomainService.buildCartOrder(user, req.getNote(), cartItems, paymentMethod);
             }
-            var inventory = inventoryDomainService.getInventory(req.getBuyNowItem().getVariantId());
-            inventoryDomainService.reserve(inventory, req.getBuyNowItem().getQuantity());
-            order = orderDomainService.buildBuyNowOrder(user, req.getNote(), inventory.getVariant(),
-                    req.getBuyNowItem().getQuantity(), paymentMethod);
-        } else {
-            cartItems = cartService.getSelectedCartItems(userId);
-            inventoryDomainService.reserveCart(cartItems);
-            order = orderDomainService.buildCartOrder(user, req.getNote(), cartItems, paymentMethod);
-        }
 
-        order.setShippingFee(quote.getShippingFee());
-        order.setShippingFullName(address.getFullName());
-        order.setShippingPhone(address.getPhoneNumber());
-        order.setShippingAddress(address.getAddress());
-        order.setGhnDistrictId(address.getGhnDistrictId());
-        order.setGhnWardCode(address.getGhnWardCode());
-        order.setProvinceName(address.getProvinceName());
-        order.setDistrictName(address.getDistrictName());
-        order.setWardName(address.getWardName());
-        order.setGhnServiceId(quote.getShippingServiceId());
-        order.setExpectedDeliveryTime(quote.getExpectedDeliveryTime());
-        order.setFinalAmount(order.getItemTotalAmount().add(quote.getShippingFee()));
-        if (order.getPayment() != null) {
-            order.getPayment().setAmount(order.getFinalAmount());
-        }
+            order.setShippingFee(quote.getShippingFee());
+            order.setShippingFullName(address.getFullName());
+            order.setShippingPhone(address.getPhoneNumber());
+            order.setShippingAddress(address.getAddress());
+            order.setGhnDistrictId(address.getGhnDistrictId());
+            order.setGhnWardCode(address.getGhnWardCode());
+            order.setProvinceName(address.getProvinceName());
+            order.setDistrictName(address.getDistrictName());
+            order.setWardName(address.getWardName());
+            order.setGhnServiceId(quote.getShippingServiceId());
+            order.setExpectedDeliveryTime(quote.getExpectedDeliveryTime());
+            order.setFinalAmount(order.getItemTotalAmount().add(quote.getShippingFee()));
+            if (order.getPayment() != null) {
+                order.getPayment().setAmount(order.getFinalAmount());
+            }
 
-        orderRepository.save(order);
-        if (mode == OrderMode.CART) {
-            cartService.removeItems(cartItems);
-        }
-        checkoutQuoteService.consumeQuote(quote);
+            orderRepository.save(order);
+            if (req.getFlashSaleReservationId() != null && mode == OrderMode.BUY_NOW) {
+                flashSaleService.confirmReservation(req.getFlashSaleReservationId(), userId, order.getId());
+            }
+            if (mode == OrderMode.CART) {
+                cartService.removeItems(cartItems);
+            }
+            checkoutQuoteService.consumeQuote(quote);
 
-        // Track PURCHASE event for each item
-        UUID finalUserId = userId;
-        order.getItems().forEach(item -> {
-            eventService.createEvent(CreateEventRequest.builder()
-                    .userId(finalUserId != null ? finalUserId.toString() : null)
-                    .eventType(EventType.PURCHASE)
-                    .itemId(item.getVariant().getId().toString())
-                    .metadata("{\"orderCode\":\"" + order.getOrderCode() + "\"}")
-                    .build());
-        });
- 
-        return orderMapper.toOrderResponse(order);
+            // Track PURCHASE event for each item
+            UUID finalUserId = userId;
+            order.getItems().forEach(item -> {
+                eventService.createEvent(CreateEventRequest.builder()
+                        .userId(finalUserId != null ? finalUserId.toString() : null)
+                        .eventType(EventType.PURCHASE)
+                        .itemId(item.getVariant().getId().toString())
+                        .metadata("{\"orderCode\":\"" + order.getOrderCode() + "\"}")
+                        .build());
+            });
+
+            return orderMapper.toOrderResponse(order);
+        } catch (RuntimeException ex) {
+            if (mode == OrderMode.BUY_NOW && req.getFlashSaleReservationId() != null) {
+                try {
+                    flashSaleService.releaseReservation(req.getFlashSaleReservationId(), userId);
+                } catch (Exception releaseEx) {
+                    log.warn("Failed to release flash sale reservation {} after order failure", req.getFlashSaleReservationId(), releaseEx);
+                }
+            }
+            throw ex;
+        }
     }
 
     @Transactional
@@ -250,6 +286,10 @@ public class OrderService {
             var inventory = inventoryDomainService.getInventory(item.getVariant().getId().toString());
             inventoryDomainService.release(inventory, item.getQuantity());
         });
+
+        if (order.getFlashSaleReservationId() != null) {
+            flashSaleService.releaseReservation(order.getFlashSaleReservationId(), userId);
+        }
 
         orderRepository.save(order);
     }
@@ -505,11 +545,24 @@ public class OrderService {
         var item = req.getBuyNowItem();
 
         var inventory = inventoryDomainService.getInventory(item.getVariantId());
-        inventoryDomainService.ensureAvailable(inventory, item.getQuantity());
-
         var variant = inventory.getVariant();
-        var amount = orderDomainService.calculateAmount(variant, item.getQuantity());
+        if (req.getFlashSaleReservationId() != null) {
+            UUID userId = securityUtils.getCurrentUserId();
+            FlashSaleReservationView reservation = flashSaleService.resolveReservationForCheckout(req.getFlashSaleReservationId(), userId);
+            if (!reservation.getVariantId().toString().equals(item.getVariantId())) {
+                throw new AppException(ErrorCode.CONFLICT, "Flash sale reservation does not match selected item");
+            }
+            if (!reservation.getQuantity().equals(item.getQuantity())) {
+                throw new AppException(ErrorCode.CONFLICT, "Flash sale reservation quantity mismatch");
+            }
+            var amount = orderDomainService.calculateAmount(variant, item.getQuantity(), reservation.getFlashPrice());
+            PreviewResponse response = orderMapper.toBuyNowPreview(variant, item.getQuantity(), amount, reservation.getFlashPrice());
+            response.getItems().forEach(previewItem -> previewItem.setFlashSaleReservationId(req.getFlashSaleReservationId()));
+            return response;
+        }
 
+        inventoryDomainService.ensureAvailable(inventory, item.getQuantity());
+        var amount = orderDomainService.calculateAmount(variant, item.getQuantity());
         return orderMapper.toBuyNowPreview(variant, item.getQuantity(), amount);
     }
 

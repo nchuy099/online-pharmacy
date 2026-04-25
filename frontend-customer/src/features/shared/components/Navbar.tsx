@@ -11,7 +11,7 @@ export const Navbar = () => {
     if (isLoading) {
         return (
             <nav className="bg-white border-b border-gray-100 overflow-x-auto no-scrollbar hidden md:block">
-                <div className="max-w-7xl mx-auto px-6">
+                <div className="mx-auto max-w-[1500px] px-6">
                     <ul className="flex items-center gap-8 py-3.5 min-w-max">
                         {[1, 2, 3, 4, 5, 6].map((i) => (
                             <li key={i} className="h-5 w-28 bg-gray-100 animate-pulse rounded-full"></li>
@@ -24,7 +24,7 @@ export const Navbar = () => {
 
     return (
         <nav className="bg-white/80 backdrop-blur-md border-b border-gray-100 hidden md:block z-30">
-            <div className="max-w-7xl mx-auto px-6">
+            <div className="mx-auto max-w-[1500px] px-6">
                 <ul className="flex items-center gap-2 py-1 min-w-max">
                     {/* All Categories Button */}
                     <li className="mr-4 pr-4 border-r border-gray-100">

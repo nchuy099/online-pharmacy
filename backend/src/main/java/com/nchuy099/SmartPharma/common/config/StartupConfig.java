@@ -134,6 +134,8 @@ public class StartupConfig {
         PermissionEntity paymentRead = upsertPermission(RbacPermissions.READ_PAYMENT, "Read payment details", RoleType.ADMIN, true, false);
 
         PermissionEntity analyticsRead = upsertPermission(RbacPermissions.READ_ANALYTICS, "Read analytics dashboard", RoleType.ADMIN, true, false);
+        PermissionEntity flashSaleRead = upsertPermission(RbacPermissions.READ_FLASH_SALE, "Read flash sale campaigns", RoleType.ADMIN, false, true);
+        PermissionEntity flashSaleManage = upsertPermission(RbacPermissions.MANAGE_FLASH_SALE, "Manage flash sale campaigns", RoleType.ADMIN, true, false);
 
         PermissionEntity userRead = upsertPermission(RbacPermissions.READ_USER, "Read users", RoleType.ADMIN, true, false);
         PermissionEntity userCreate = upsertPermission(RbacPermissions.CREATE_USER, "Create users", RoleType.ADMIN, true, false);
@@ -151,6 +153,7 @@ public class StartupConfig {
                 inventoryRead, inventoryImport,
                 orderRead, orderConfirm, orderShip, paymentRead,
                 analyticsRead,
+                flashSaleRead, flashSaleManage,
                 userRead, userCreate, userUpdate, userRoleAssign, userStatusUpdate, userPasswordReset,
                 rbacRead, rbacManage);
 

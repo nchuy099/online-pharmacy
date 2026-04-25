@@ -17,13 +17,14 @@
 
 ## 📖 Overview
 
-**SmartPharma** is a full-featured online pharmacy system with a Spring Boot backend, role-specific React interfaces, and supporting AI services. It enables customers to purchase medications, receive real-time pharmacist consultations via chat, and get AI-powered smart product recommendations.
+**SmartPharma** is a full-featured online pharmacy system with a Spring Boot backend, role-specific React interfaces, and supporting AI services. It enables customers to purchase medications, receive real-time pharmacist consultations via chat, join scheduled flash-sale campaigns, and get AI-powered smart product recommendations.
 
 The current architecture includes:
 
 - centralized RBAC for backend and admin permissions
 - internal JWT authentication between backend, chatbot-ai, and rcm-service
 - async chatbot metadata generation for conversation `title` and `summary`
+- flash sale campaigns with Redis-backed stock reservation, Lua-based claim control, and realtime stock updates over WebSocket
 
 The system provides **3 separate interfaces** tailored for each role: **Customer**, **Pharmacist**, and **Administrator**.
 
@@ -47,7 +48,10 @@ The system provides **3 separate interfaces** tailored for each role: **Customer
 - Registration & Login (JWT + OAuth2)
 - Product search & filtering by category, active ingredient, and usage
 - Product details, ratings & reviews
+- Flash sale landing page with scheduled and active campaigns by time slot
+- Product pages and listings automatically switch to flash sale pricing only during the active sale window
 - Shopping cart management & order placement
+- Buy-now flash sale checkout with reservation token claim flow; add-to-cart remains a normal purchase flow
 - Payment via COD or bank transfer with SePay integration
 - Shipping fee calculation, shipment creation, delivery lead time, and tracking via GHN
 - Real-time order and delivery tracking
@@ -64,6 +68,7 @@ The system provides **3 separate interfaces** tailored for each role: **Customer
 ### 🛠️ Staff & Super Admin
 - Product & category management (CRUD with Rich Text Editor)
 - Inventory management
+- Flash sale campaign management with scheduled slots, per-user purchase limits, and draft/publish/cancel workflows
 - Order management & payment tracking
 - Pharmacist account & consultation session management
 - User management with permission-based RBAC
@@ -123,6 +128,7 @@ The system provides **3 separate interfaces** tailored for each role: **Customer
 | **RBAC custom layer** | Permission-based authorization across roles |
 | **Spring Data JPA** | ORM for PostgreSQL |
 | **Spring Data JPA + PostgreSQL** | Chat history and metadata storage |
+| **Spring Data Redis + Lua** | Flash sale stock caching, atomic claim/reservation control |
 | **Spring WebSocket** | Real-time chat communication |
 | **Flyway** | Database migration management |
 | **AWS S3 SDK** | Media upload & management |
@@ -161,6 +167,7 @@ The system provides **3 separate interfaces** tailored for each role: **Customer
 |---|---|
 | **Docker Compose** | Container orchestration |
 | **PostgreSQL 15** | Primary relational database |
+| **Redis** | Flash sale stock cache and reservation coordination |
 
 ---
 
@@ -235,6 +242,7 @@ Notes:
 - `chatbot-ai` exposes `/api/v1/chat` and `/api/v1/chat/metadata` behind internal JWT auth.
 - `rcm-service` only accepts recommendation requests with backend-issued internal JWTs.
 - Chat metadata is generated asynchronously after the main reply so the chat response path stays fast.
+- Flash sale campaigns can be visible before start time on the customer flash sale page, but discounted pricing and reservation claims are only applied when the campaign is inside its active time window.
 
 ---
 

@@ -45,5 +45,26 @@ public class ProductListResponse {
         BigDecimal discountPercent;
         Boolean isDefault;
         Integer quantityAvailable;
+        FlashSaleSummaryResponse flashSale;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class FlashSaleSummaryResponse {
+        String id;
+        String campaignId;
+        String campaignName;
+        BigDecimal flashPrice;
+        BigDecimal originalPrice;
+        Integer remainingStock;
+        Integer saleStock;
+        Integer perUserLimit;
+        java.time.Instant startAt;
+        java.time.Instant endAt;
+        String status;
     }
 }

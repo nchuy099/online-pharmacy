@@ -29,10 +29,25 @@ export interface ProductVariantDTO {
     quantityAvailable?: number | null;
     isDefault: boolean;
     isActive: boolean;
+    flashSale?: FlashSaleSummaryDTO | null;
 
     // Legacy fallback fields
     unit?: string;
     variantName?: string;
+}
+
+export interface FlashSaleSummaryDTO {
+    id: string;
+    campaignId?: string | null;
+    campaignName?: string | null;
+    flashPrice: number;
+    originalPrice?: number | null;
+    remainingStock: number;
+    saleStock?: number | null;
+    perUserLimit?: number | null;
+    startAt?: string | null;
+    endAt?: string | null;
+    status?: string | null;
 }
 
 export interface ProductDTO {

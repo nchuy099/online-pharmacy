@@ -26,6 +26,7 @@ export const CheckoutPage = () => {
     // Support both legacy productId and new variantId
     const variantId = searchParams.get("variantId");
     const productId = searchParams.get("productId");
+    const flashSaleReservationId = searchParams.get("flashSaleReservationId");
     const quantity = Number(searchParams.get("quantity") || 1);
     const addressId = selectedAddress?.id;
     const selectedShippingMethod = checkoutData?.shippingMethods?.find((method) => method.serviceId === selectedServiceId)
@@ -54,6 +55,7 @@ export const CheckoutPage = () => {
                 addressId,
                 serviceId: selectedServiceId || undefined,
                 note: note.trim() || undefined,
+                flashSaleReservationId: flashSaleReservationId || undefined,
             },
             {
                 onSuccess: (data: OrderCheckout) => {
@@ -128,6 +130,7 @@ export const CheckoutPage = () => {
                     ? { variantId: variantId || productId || "", quantity }
                     : undefined,
                 note: note.trim() || undefined,
+                flashSaleReservationId: flashSaleReservationId || undefined,
             },
             {
                 onSuccess: (data: Order) => {

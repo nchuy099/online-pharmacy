@@ -54,6 +54,8 @@ public class OrderEntity extends AbstractEntity {
     String districtName;
     String wardName;
     String ghnOrderCode;
+    @Column(name = "flash_sale_reservation_id")
+    java.util.UUID flashSaleReservationId;
     Integer ghnServiceId;
     Long expectedDeliveryTime;
     java.time.Instant deliveredAt;

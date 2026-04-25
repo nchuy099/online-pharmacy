@@ -5,12 +5,13 @@ import { toast } from "react-hot-toast";
 import type { Product, ProductVariant } from "../types/domain";
 import type { CartDetails } from "@/features/cart/types/domain";
 import { getPreferredVariant, type ProductSortBy } from "../services/product.service";
-import { isVariantPurchasable } from "../product.utils";
+import { getDisplayVariantStock, getEffectiveVariantPrice, getLiveFlashSale, isVariantPurchasable } from "../product.utils";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { useAddToCart } from "@/features/cart/hooks/useAddToCart";
 import { useUpdateCartItem } from "@/features/cart/hooks/useUpdateCartItem";
 import { useEventTracking } from "@/features/shared/hooks/useEventTracking";
 import { EventType } from "@/features/shared/types/event";
+import { flashSaleApi } from "@/features/flash-sale/api/flashSale.api";
 
 export const useProductCardActions = (product: Product, sortBy?: ProductSortBy) => {
     const navigate = useNavigate();
@@ -31,10 +32,11 @@ export const useProductCardActions = (product: Product, sortBy?: ProductSortBy) 
     );
 
     const isOutOfStock = !selectedVariant || !isVariantPurchasable(selectedVariant);
-    const maxQuantity = selectedVariant?.availableQuantity ?? Number.POSITIVE_INFINITY;
+    const maxQuantity = selectedVariant ? (getDisplayVariantStock(selectedVariant) ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY;
     const canDecreaseQuantity = quantity > 1;
     const canIncreaseQuantity = quantity < maxQuantity;
     const canPurchase = Boolean(selectedVariant) && !isOutOfStock && !addToCartMutation.isPending;
+    const liveFlashSale = getLiveFlashSale(selectedVariant);
 
     useEffect(() => {
         setSelectedVariant(getPreferredVariant(product.variants, sortBy));
@@ -111,7 +113,7 @@ export const useProductCardActions = (product: Product, sortBy?: ProductSortBy) 
                         void track(EventType.ADD_TO_CART, product.id, {
                             variantId: selectedVariant.id,
                             quantity,
-                            price: selectedVariant.salePrice,
+                            price: getEffectiveVariantPrice(selectedVariant),
                             action: "increment_existing_cart_item",
                         });
                         notifyAdded();
@@ -132,7 +134,7 @@ export const useProductCardActions = (product: Product, sortBy?: ProductSortBy) 
                     void track(EventType.ADD_TO_CART, product.id, {
                         variantId: selectedVariant.id,
                         quantity,
-                        price: selectedVariant.salePrice,
+                        price: getEffectiveVariantPrice(selectedVariant),
                         action: "add_new_cart_item",
                     });
                     notifyAdded();
@@ -145,7 +147,7 @@ export const useProductCardActions = (product: Product, sortBy?: ProductSortBy) 
         );
     };
 
-    const handleBuyNow = () => {
+    const handleBuyNow = async () => {
         if (!product || !selectedVariant || !canPurchase) return;
         if (!user) {
             openAuthModal();
@@ -155,8 +157,23 @@ export const useProductCardActions = (product: Product, sortBy?: ProductSortBy) 
         void track(EventType.CHECKOUT, product.id, {
             variantId: selectedVariant.id,
             quantity,
-            price: selectedVariant.salePrice,
+            price: getEffectiveVariantPrice(selectedVariant),
         });
+
+        if (liveFlashSale?.id) {
+            try {
+                const reservation = await flashSaleApi.claim(liveFlashSale.id, {
+                    quantity,
+                    idempotencyKey: crypto.randomUUID(),
+                });
+                navigate(`/checkout?mode=BUY_NOW&variantId=${selectedVariant.id}&quantity=${quantity}&flashSaleReservationId=${reservation.reservationId}`);
+                return;
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : "Không thể giữ chỗ flash sale";
+                toast.error(message);
+                return;
+            }
+        }
 
         navigate(`/checkout?mode=BUY_NOW&variantId=${selectedVariant.id}&quantity=${quantity}`);
     };

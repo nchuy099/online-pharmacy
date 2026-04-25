@@ -25,6 +25,7 @@ import com.nchuy099.SmartPharma.common.exception.AppException;
 import com.nchuy099.SmartPharma.common.exception.ErrorCode;
 import com.nchuy099.SmartPharma.common.utils.StringUtils;
 import com.nchuy099.SmartPharma.inventory.service.InventoryDomainService;
+import com.nchuy099.SmartPharma.flashsale.service.FlashSaleService;
 import com.nchuy099.SmartPharma.media.service.MediaService;
 import com.nchuy099.SmartPharma.product.dto.request.CreateProductRequest;
 import com.nchuy099.SmartPharma.product.dto.request.CreateProductVariantRequest;
@@ -63,6 +64,7 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     private final ReviewRepository reviewRepository;
     private final InventoryDomainService inventoryDomainService;
+    private final FlashSaleService flashSaleService;
     private final MediaService mediaService;
 
     public ProductImageUploadUrlResp createProductImageUploadUrl() {
@@ -646,6 +648,7 @@ public class ProductService {
         Long totalReviews = includeStats && stats != null && stats.getTotalReviews() != null
                 ? stats.getTotalReviews()
                 : 0L;
+        Map<UUID, ProductResponse.FlashSaleSummaryResponse> flashSaleByVariantId = loadFlashSaleSummaries(variants);
 
         return ProductListResponse.builder()
                 .id(product.getId().toString())
@@ -664,6 +667,9 @@ public class ProductService {
                                 .discountPercent(v.getDiscountPercent() != null ? v.getDiscountPercent() : java.math.BigDecimal.ZERO)
                                 .isDefault(v.getIsDefault())
                                 .quantityAvailable(v.getInventory() != null ? v.getInventory().getQuantityAvailable() : 0)
+                                .flashSale(v.getId() != null && flashSaleByVariantId.get(v.getId()) != null
+                                        ? toProductListFlashSale(flashSaleByVariantId.get(v.getId()))
+                                        : null)
                                 .build())
                         .toList())
                 .quantityAvailable(variants.stream().mapToInt(v -> v.getInventory() != null ? v.getInventory().getQuantityAvailable() : 0).sum())
@@ -687,6 +693,7 @@ public class ProductService {
             List<ProductVariantEntity> variants,
             List<ProductImageEntity> images,
             List<ProductIngredientEntity> ingredients) {
+        Map<UUID, ProductResponse.FlashSaleSummaryResponse> flashSaleByVariantId = loadFlashSaleSummaries(variants);
         return ProductResponse.builder()
                 .id(product.getId().toString())
                 .code(product.getCode())
@@ -703,7 +710,7 @@ public class ProductService {
                 .adverseEffect(product.getAdverseEffect())
                 .preservation(product.getPreservation())
                 .variants(variants.stream()
-                        .map(this::mapToVariantResponse)
+                        .map(v -> mapToVariantResponse(v, v.getId() != null ? flashSaleByVariantId.get(v.getId()) : null))
                         .toList())
                 .ingredient(ingredients.stream()
                         .map(i -> ProductResponse.IngredientResponse.builder()
@@ -865,6 +872,10 @@ public class ProductService {
     }
 
     private ProductResponse.VariantResponse mapToVariantResponse(ProductVariantEntity v) {
+        return mapToVariantResponse(v, null);
+    }
+
+    private ProductResponse.VariantResponse mapToVariantResponse(ProductVariantEntity v, ProductResponse.FlashSaleSummaryResponse flashSale) {
         return ProductResponse.VariantResponse.builder()
                 .id(v.getId() != null ? v.getId().toString() : null)
                 .sku(v.getSku())
@@ -876,6 +887,60 @@ public class ProductService {
                 .isActive(v.getIsActive())
                 .quantityAvailable(v.getInventory() != null ? v.getInventory().getQuantityAvailable() : 0)
                 .quantityOnHand(v.getInventory() != null ? v.getInventory().getQuantityOnHand() : 0)
+                .flashSale(flashSale)
+                .build();
+    }
+
+    private Map<UUID, ProductResponse.FlashSaleSummaryResponse> loadFlashSaleSummaries(List<ProductVariantEntity> variants) {
+        List<UUID> variantIds = variants.stream()
+                .map(ProductVariantEntity::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        if (variantIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return flashSaleService.getActiveItemsByVariantIds(variantIds).stream()
+                .filter(item -> item.getVariantId() != null)
+                .collect(Collectors.toMap(
+                        item -> UUID.fromString(item.getVariantId()),
+                        this::toProductFlashSale,
+                        (left, right) -> left,
+                        LinkedHashMap::new));
+    }
+
+    private ProductResponse.FlashSaleSummaryResponse toProductFlashSale(com.nchuy099.SmartPharma.flashsale.dto.response.FlashSaleItemResponse item) {
+        return ProductResponse.FlashSaleSummaryResponse.builder()
+                .id(item.getId())
+                .campaignId(item.getCampaignId())
+                .campaignName(item.getCampaignName())
+                .flashPrice(item.getFlashPrice())
+                .originalPrice(item.getOriginalPrice())
+                .remainingStock(item.getRemainingStock())
+                .saleStock(item.getSaleStock())
+                .perUserLimit(item.getPerUserLimit())
+                .startAt(item.getStartAt())
+                .endAt(item.getEndAt())
+                .status(item.getStatus() != null ? item.getStatus().name() : null)
+                .build();
+    }
+
+    private ProductListResponse.FlashSaleSummaryResponse toProductListFlashSale(ProductResponse.FlashSaleSummaryResponse flashSale) {
+        if (flashSale == null) {
+            return null;
+        }
+        return ProductListResponse.FlashSaleSummaryResponse.builder()
+                .id(flashSale.getId())
+                .campaignId(flashSale.getCampaignId())
+                .campaignName(flashSale.getCampaignName())
+                .flashPrice(flashSale.getFlashPrice())
+                .originalPrice(flashSale.getOriginalPrice())
+                .remainingStock(flashSale.getRemainingStock())
+                .saleStock(flashSale.getSaleStock())
+                .perUserLimit(flashSale.getPerUserLimit())
+                .startAt(flashSale.getStartAt())
+                .endAt(flashSale.getEndAt())
+                .status(flashSale.getStatus())
                 .build();
     }
 

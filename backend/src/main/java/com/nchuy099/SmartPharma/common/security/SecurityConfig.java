@@ -47,6 +47,12 @@ public class SecurityConfig {
             "/api/internal/sepay/webhook",
             "/products/**",
             "/categories/**",
+            "/flash-sales/active",
+            "/flash-sales/active/**",
+            "/flash-sales/campaigns",
+            "/flash-sales/campaigns/**",
+            "/flash-sales/events",
+            "/flash-sales/events/**",
             "/catalogs/locations/**",
             "/reviews/products/**",
             "/events/**",
@@ -91,8 +97,9 @@ public class SecurityConfig {
                         .requestMatchers("/recommendations", "/recommendations/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/chat/rooms").permitAll()
                         .requestMatchers(HttpMethod.POST, "/chat/ai").authenticated()
+                        .requestMatchers("/flash-sales/active", "/flash-sales/active/**", "/flash-sales/campaigns", "/flash-sales/campaigns/**", "/flash-sales/events", "/flash-sales/events/**").permitAll()
                         // User endpoints
-                        .requestMatchers("/users/me/**", "/carts/**", "/orders/**", "/checkout/**", "/reviews/**")
+                        .requestMatchers("/users/me/**", "/carts/**", "/orders/**", "/checkout/**", "/reviews/**", "/flash-sales/**")
                         .authenticated()
                         .requestMatchers("/chat/**").authenticated()
 

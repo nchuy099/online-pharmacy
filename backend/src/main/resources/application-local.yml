@@ -3,6 +3,11 @@ spring:
     hibernate:
       ddl-auto: validate
 
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+
   datasource:
     url: ${POSTGRES_URL}
     username: ${POSTGRES_USER}

@@ -1,6 +1,7 @@
 import { productApi } from "../api/product.api";
-import type { ProductDTO, ProductVariantDTO, IngredientDTO } from "../types/dto";
-import type { Product, ProductVariant, Ingredient } from "../types/domain";
+import type { ProductDTO, ProductVariantDTO, IngredientDTO, FlashSaleSummaryDTO } from "../types/dto";
+import type { Product, ProductVariant, Ingredient, FlashSaleSummary } from "../types/domain";
+import { getDisplayVariantStock, getEffectiveVariantPrice, getLiveFlashSale } from "../product.utils";
 
 export type ProductSortBy = "popular" | "price-low" | "price-high";
 
@@ -14,6 +15,7 @@ const mapVariantDTOToDomain = (dto: ProductVariantDTO): ProductVariant => ({
     availableQuantity: dto.availableQuantity ?? dto.quantityAvailable ?? null,
     isDefault: dto.isDefault,
     isActive: dto.isActive ?? true,
+    flashSale: dto.flashSale ? mapFlashSaleDTOToDomain(dto.flashSale) : null,
 });
 
 interface LegacyPrice {
@@ -23,6 +25,20 @@ interface LegacyPrice {
     currencySymbol: string;
     productSpecs: string;
 }
+
+const mapFlashSaleDTOToDomain = (dto: FlashSaleSummaryDTO): FlashSaleSummary => ({
+    id: dto.id,
+    campaignId: dto.campaignId ?? null,
+    campaignName: dto.campaignName ?? null,
+    flashPrice: dto.flashPrice,
+    originalPrice: dto.originalPrice ?? null,
+    remainingStock: dto.remainingStock,
+    saleStock: dto.saleStock ?? null,
+    perUserLimit: dto.perUserLimit ?? null,
+    startAt: dto.startAt ?? null,
+    endAt: dto.endAt ?? null,
+    status: dto.status ?? null,
+});
 
 const mapLegacyPricesToVariants = (
     prices: LegacyPrice[] | undefined,
@@ -104,6 +120,7 @@ const mapProductDTOToDomain = (dto: ProductDTO): Product => {
 export function getDefaultVariant(variants: ProductVariant[]): ProductVariant | null {
     if (!variants.length) return null;
     return (
+        variants.find(v => getLiveFlashSale(v) && v.isActive && (getDisplayVariantStock(v) == null || getDisplayVariantStock(v)! > 0)) ??
         variants.find(v => v.isDefault && v.isActive && (v.availableQuantity == null || v.availableQuantity > 0)) ??
         variants.find(v => v.isActive && (v.availableQuantity == null || v.availableQuantity > 0)) ??
         variants.find(v => v.isDefault && v.isActive) ??
@@ -124,13 +141,13 @@ export function getPreferredVariant(
 
     if (sortBy === "price-low") {
         return activeVariants.reduce((lowest, current) =>
-            current.salePrice < lowest.salePrice ? current : lowest
+            getEffectiveVariantPrice(current) < getEffectiveVariantPrice(lowest) ? current : lowest
         );
     }
 
     if (sortBy === "price-high") {
         return activeVariants.reduce((highest, current) =>
-            current.salePrice > highest.salePrice ? current : highest
+            getEffectiveVariantPrice(current) > getEffectiveVariantPrice(highest) ? current : highest
         );
     }
 
@@ -140,14 +157,14 @@ export function getPreferredVariant(
 export function getLowestPrice(variants: ProductVariant[]): number | null {
     const activePrices = variants
         .filter(v => v.isActive)
-        .map(v => v.salePrice);
+        .map(v => getEffectiveVariantPrice(v));
     if (activePrices.length === 0) return null;
     return Math.min(...activePrices);
 }
 
 export function hasAvailableStock(variants: ProductVariant[]): boolean {
     return variants.some(
-        v => v.isActive && (v.availableQuantity == null || v.availableQuantity > 0)
+        v => v.isActive && (getDisplayVariantStock(v) == null || getDisplayVariantStock(v)! > 0)
     );
 }
 

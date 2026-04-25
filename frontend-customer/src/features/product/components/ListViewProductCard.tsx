@@ -4,7 +4,7 @@ import { FaMinus, FaPlus } from "react-icons/fa";
 import type { Product } from '../types/domain';
 import { useRef, useEffect } from 'react';
 import { hasAvailableStock } from '../services/product.service';
-import { formatUnitType, formatVND, isVariantPurchasable } from '../product.utils';
+import { formatUnitType, formatVND, getDisplayVariantStock, getEffectiveVariantPrice, getLiveFlashSale, isVariantPurchasable } from '../product.utils';
 import { useEventTracking } from '@/features/shared/hooks/useEventTracking';
 import { EventType } from '@/features/shared/types/event';
 import { useProductCardActions } from '../hooks/useProductCardActions';
@@ -60,6 +60,8 @@ export const ListViewProductCard: React.FC<Props> = ({ product, showPurchaseCont
     };
 
     const inStock = hasAvailableStock(product.variants);
+    const displayStock = selectedVariant ? getDisplayVariantStock(selectedVariant) : null;
+    const flashSale = getLiveFlashSale(selectedVariant);
 
     return (
         <div ref={cardRef} className={`bg-white p-6 rounded-[32px] border border-gray-100 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/5 transition-all group flex gap-8 ${!inStock ? 'opacity-75' : ''}`}>
@@ -103,8 +105,18 @@ export const ListViewProductCard: React.FC<Props> = ({ product, showPurchaseCont
                             </div>
                             {selectedVariant && (
                                 <div className="flex flex-col gap-1">
+                                    {flashSale && (
+                                        <div className="mb-1 inline-flex w-fit items-center gap-2 rounded-full border border-red-100 bg-red-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-red-600">
+                                            Flash sale
+                                        </div>
+                                    )}
                                     <div className="flex items-baseline gap-1 flex-wrap">
-                                        <span className="text-2xl font-black text-red-600">{formatVND(selectedVariant.salePrice)}đ</span>
+                                        <span className="text-2xl font-black text-red-600">{formatVND(getEffectiveVariantPrice(selectedVariant))}đ</span>
+                                        {flashSale && flashSale.originalPrice != null && flashSale.originalPrice > flashSale.flashPrice && (
+                                            <span className="text-sm font-bold text-gray-400 line-through">
+                                                {formatVND(flashSale.originalPrice)}đ
+                                            </span>
+                                        )}
                                         <span className="text-sm font-black text-gray-500">/</span>
                                         <span className="text-sm font-black text-gray-700 uppercase tracking-wide">
                                             {formatUnitType(selectedVariant.unitType)}
@@ -117,10 +129,10 @@ export const ListViewProductCard: React.FC<Props> = ({ product, showPurchaseCont
                                     )}
                                 </div>
                             )}
-                            {selectedVariant?.availableQuantity != null && (
+                            {selectedVariant && displayStock != null && (
                                 <p className="text-[11px] font-bold text-gray-400">
-                                    {selectedVariant.availableQuantity > 0
-                                        ? <>Còn <span className="text-emerald-600">{selectedVariant.availableQuantity}</span> sản phẩm</>
+                                    {displayStock > 0
+                                        ? <>Còn <span className="text-emerald-600">{displayStock}</span> sản phẩm</>
                                         : <span className="text-red-500">Hết hàng</span>}
                                 </p>
                             )}

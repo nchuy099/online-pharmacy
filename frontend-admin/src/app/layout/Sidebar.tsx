@@ -5,6 +5,7 @@ import {
     FaPills,
     FaShoppingCart,
     FaChartBar,
+    FaBolt,
     FaSignOutAlt,
     FaTimes,
     FaChevronDown,
@@ -49,6 +50,7 @@ const Sidebar = ({ isOpen = false, onClose, isCollapsed = false, onToggleCollaps
         { path: "/categories", icon: FaPills, label: "Phân loại", active: location.pathname === "/categories", permissions: ["READ_CATEGORY"] },
         { path: "/products", icon: FaPills, label: "Sản phẩm", active: location.pathname === "/products", permissions: ["READ_PRODUCT"] },
         { path: "/inventories", icon: FaWarehouse, label: "Kho", active: location.pathname === "/inventories", permissions: ["READ_INVENTORY"] },
+        { path: "/flash-sales", icon: FaBolt, label: "Flash sale", active: location.pathname.startsWith("/flash-sales"), permissions: ["MANAGE_FLASH_SALE"] },
         { path: "/orders", icon: FaShoppingCart, label: "Đơn hàng", active: location.pathname === "/orders", permissions: ["READ_ORDER"] },
     ];
 

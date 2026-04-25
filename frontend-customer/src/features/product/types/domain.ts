@@ -10,6 +10,21 @@ export interface ProductVariant {
     availableQuantity?: number | null;
     isDefault: boolean;
     isActive: boolean;
+    flashSale?: FlashSaleSummary | null;
+}
+
+export interface FlashSaleSummary {
+    id: string;
+    campaignId?: string | null;
+    campaignName?: string | null;
+    flashPrice: number;
+    originalPrice?: number | null;
+    remainingStock: number;
+    saleStock?: number | null;
+    perUserLimit?: number | null;
+    startAt?: string | null;
+    endAt?: string | null;
+    status?: string | null;
 }
 
 export interface ProductImage {

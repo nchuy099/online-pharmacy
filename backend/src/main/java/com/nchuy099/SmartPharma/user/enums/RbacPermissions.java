@@ -6,6 +6,8 @@ public final class RbacPermissions {
     }
 
     public static final String READ_ANALYTICS = "READ_ANALYTICS";
+    public static final String READ_FLASH_SALE = "READ_FLASH_SALE";
+    public static final String MANAGE_FLASH_SALE = "MANAGE_FLASH_SALE";
 
     public static final String CREATE_CATEGORY = "CREATE_CATEGORY";
     public static final String DELETE_CATEGORY = "DELETE_CATEGORY";

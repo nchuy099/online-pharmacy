@@ -28,7 +28,15 @@ services:
       retries: 5
     networks:
       - smart-pharma-network
-    
+
+  redis:
+    image: redis:7-alpine
+    container_name: smart-pharma-redis
+    ports:
+      - "6380:6379"
+    networks:
+      - smart-pharma-network
+
   # Backend Service
   backend:
     build:
@@ -46,6 +54,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
   # AI Services
   chatbot-ai:
     build:
@@ -80,45 +90,6 @@ services:
         condition: service_started
       postgres:
         condition: service_healthy
-
-  # Frontend Services
-  frontend-customer:
-    build:
-      context: ./frontend-customer
-      dockerfile: Dockerfile
-    container_name: smart-pharma-fe-customer
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-      - chatbot-ai
-      - rcm-service
-    networks:
-      - smart-pharma-network
-
-  frontend-admin:
-    build:
-      context: ./frontend-admin
-      dockerfile: Dockerfile
-    container_name: smart-pharma-fe-admin
-    ports:
-      - "3001:80"
-    depends_on:
-      - backend
-    networks:
-      - smart-pharma-network
-
-  frontend-pharmacist:
-    build:
-      context: ./frontend-pharmacist
-      dockerfile: Dockerfile
-    container_name: smart-pharma-fe-pharmacist
-    ports:
-      - "3002:80"
-    depends_on:
-      - backend
-    networks:
-      - smart-pharma-network
 
 networks:
   smart-pharma-network:

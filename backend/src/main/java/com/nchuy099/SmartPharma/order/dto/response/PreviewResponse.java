@@ -70,5 +70,6 @@ public class PreviewResponse {
         private String productImageUrl;
         private Integer quantity;
         private BigDecimal unitPrice;
+        private UUID flashSaleReservationId;
     }
 }

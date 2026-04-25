@@ -46,6 +46,7 @@ class ProductServiceTest {
     private ProductVariantRepository productVariantRepository;
     private CategoryRepository categoryRepository;
     private ReviewRepository reviewRepository;
+    private com.nchuy099.SmartPharma.flashsale.service.FlashSaleService flashSaleService;
     private ProductService productService;
 
     @BeforeEach
@@ -54,6 +55,7 @@ class ProductServiceTest {
         productVariantRepository = mock(ProductVariantRepository.class);
         categoryRepository = mock(CategoryRepository.class);
         reviewRepository = mock(ReviewRepository.class);
+        flashSaleService = mock(com.nchuy099.SmartPharma.flashsale.service.FlashSaleService.class);
 
         MediaService mediaService = new MediaService(
                 mock(com.nchuy099.SmartPharma.common.utils.SecurityUtils.class),
@@ -63,7 +65,8 @@ class ProductServiceTest {
         ReflectionTestUtils.setField(mediaService, "region", "ap-southeast-1");
 
         productService = new ProductService(productRepository, productVariantRepository, categoryRepository, reviewRepository,
-                mock(InventoryDomainService.class), mediaService);
+                mock(InventoryDomainService.class), flashSaleService, mediaService);
+        when(flashSaleService.getActiveItemsByVariantIds(any())).thenReturn(List.of());
 
         when(productRepository.saveAndFlush(any(ProductEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(productRepository.save(any(ProductEntity.class))).thenAnswer(invocation -> {

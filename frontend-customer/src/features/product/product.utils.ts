@@ -1,5 +1,7 @@
 import type { ProductVariant } from "./types/domain";
 
+type FlashSaleSummary = NonNullable<ProductVariant["flashSale"]>;
+
 export const formatUnitType = (unitType: string | undefined): string => {
     if (!unitType) return "Sản phẩm";
 
@@ -42,6 +44,46 @@ export const formatVND = (amount: number): string => {
     return new Intl.NumberFormat("vi-VN").format(amount);
 };
 
+const parseFlashSaleTime = (value?: string | null): number | null => {
+    if (!value) {
+        return null;
+    }
+    const timestamp = new Date(value).getTime();
+    return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+export const getLiveFlashSale = (variant: ProductVariant | null | undefined): FlashSaleSummary | null => {
+    const flashSale = variant?.flashSale;
+    if (!flashSale) {
+        return null;
+    }
+
+    const now = Date.now();
+    const startAt = parseFlashSaleTime(flashSale.startAt);
+    const endAt = parseFlashSaleTime(flashSale.endAt);
+
+    if (startAt != null && now < startAt) {
+        return null;
+    }
+    if (endAt != null && now >= endAt) {
+        return null;
+    }
+
+    return flashSale;
+};
+
+export const getEffectiveVariantPrice = (variant: ProductVariant): number => {
+    return getLiveFlashSale(variant)?.flashPrice ?? variant.salePrice;
+};
+
+export const getDisplayVariantStock = (variant: ProductVariant): number | null => {
+    const flashSale = getLiveFlashSale(variant);
+    if (flashSale) {
+        return flashSale.remainingStock ?? 0;
+    }
+    return variant.availableQuantity ?? null;
+};
+
 export const getVariantLabel = (variant: ProductVariant): string => {
     const unitType = formatUnitType(variant.unitType);
     if (variant.specification?.trim()) {
@@ -51,5 +93,6 @@ export const getVariantLabel = (variant: ProductVariant): string => {
 };
 
 export const isVariantPurchasable = (variant: ProductVariant): boolean => {
-    return variant.isActive && (variant.availableQuantity == null || variant.availableQuantity > 0);
+    const availableStock = getDisplayVariantStock(variant);
+    return variant.isActive && (availableStock == null || availableStock > 0);
 };

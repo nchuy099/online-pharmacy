@@ -23,6 +23,8 @@ import RoleDetailPage from "../../features/rbac/pages/RoleDetailPage";
 import PermissionDetailPage from "../../features/rbac/pages/PermissionDetailPage";
 import MedicalConsultationListPage from "../../features/medical-consultation/pages/MedicalConsultationListPage";
 import MedicalConsultationDetailPage from "../../features/medical-consultation/pages/MedicalConsultationDetailPage";
+import FlashSalePage from "../../features/flash-sale/pages/FlashSalePage";
+import FlashSaleEditorPage from "../../features/flash-sale/pages/FlashSaleEditorPage";
 
 const router = createBrowserRouter([
     {
@@ -64,6 +66,9 @@ const router = createBrowserRouter([
             { path: "products/:productId/details", element: <RequireRole allowedPermissions={["READ_PRODUCT"]}><ProductDetailsPage /></RequireRole> },
             { path: "inventories", element: <RequireRole allowedPermissions={["READ_INVENTORY"]}><InventoryPage /></RequireRole> },
             { path: "inventories/:id/transactions", element: <RequireRole allowedPermissions={["READ_INVENTORY"]}><InventoryTransactionPage /></RequireRole> },
+            { path: "flash-sales", element: <RequireRole allowedPermissions={["MANAGE_FLASH_SALE"]}><FlashSalePage /></RequireRole> },
+            { path: "flash-sales/new", element: <RequireRole allowedPermissions={["MANAGE_FLASH_SALE"]}><FlashSaleEditorPage /></RequireRole> },
+            { path: "flash-sales/:campaignId", element: <RequireRole allowedPermissions={["MANAGE_FLASH_SALE"]}><FlashSaleEditorPage /></RequireRole> },
             { path: "orders", element: <RequireRole allowedPermissions={["READ_ORDER"]}><OrderPage /></RequireRole> },
             { path: "orders/:id", element: <RequireRole allowedPermissions={["READ_ORDER"]}><OrderDetailsPage /></RequireRole> },
         ],

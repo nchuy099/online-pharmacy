@@ -17,4 +17,5 @@ public class OrderPreviewRequest {
     private UUID addressId;
     private Integer serviceId;
     private String note;
+    private UUID flashSaleReservationId;
 }

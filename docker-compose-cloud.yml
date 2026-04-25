@@ -30,7 +30,14 @@ services:
     networks:
       - smart-pharma-network
 
-      
+  redis:
+    image: redis:7-alpine
+    container_name: smart-pharma-redis
+    ports:
+      - "6380:6379"
+    networks:
+      - smart-pharma-network
+
   # Backend Service
   backend:
     build:
@@ -43,78 +50,15 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=cloud
-    networks:
-      - smart-pharma-network
-
-  # AI Services
-  chatbot-ai:
-    build:
-      context: ./chatbot-ai
-      dockerfile: Dockerfile
-    container_name: smart-pharma-chatbot
-    env_file:
-      - ./chatbot-ai/.env.cloud
-    ports:
-      - "8001:8001"
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
       - smart-pharma-network
     depends_on:
-      qdrant:
+      postgres:
+        condition: service_healthy
+      redis:
         condition: service_started
-
-  rcm-service:
-    build:
-      context: ./rcm-service
-      dockerfile: Dockerfile
-    container_name: smart-pharma-rcm
-    env_file:
-      - ./rcm-service/.env.cloud
-    ports:
-      - "8002:8002"
-    networks:
-      - smart-pharma-network
-    depends_on:
-      qdrant:
-        condition: service_started
-
-  # Frontend Services
-  frontend-customer:
-    build:
-      context: ./frontend-customer
-      dockerfile: Dockerfile
-    container_name: smart-pharma-fe-customer
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-      - chatbot-ai
-      - rcm-service
-    networks:
-      - smart-pharma-network
-
-  frontend-admin:
-    build:
-      context: ./frontend-admin
-      dockerfile: Dockerfile
-    container_name: smart-pharma-fe-admin
-    ports:
-      - "3001:80"
-    depends_on:
-      - backend
-    networks:
-      - smart-pharma-network
-
-  frontend-pharmacist:
-    build:
-      context: ./frontend-pharmacist
-      dockerfile: Dockerfile
-    container_name: smart-pharma-fe-pharmacist
-    ports:
-      - "3002:80"
-    depends_on:
-      - backend
-    networks:
-      - smart-pharma-network
 
 networks:
   smart-pharma-network:

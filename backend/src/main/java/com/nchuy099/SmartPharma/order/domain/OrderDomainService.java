@@ -83,6 +83,11 @@ public class OrderDomainService {
                 return variant.getSalePrice().multiply(BigDecimal.valueOf(qty));
         }
 
+        public BigDecimal calculateAmount(ProductVariantEntity variant, int qty, BigDecimal unitPriceOverride) {
+                BigDecimal unitPrice = unitPriceOverride != null ? unitPriceOverride : variant.getSalePrice();
+                return unitPrice.multiply(BigDecimal.valueOf(qty));
+        }
+
         public BigDecimal calculateCartAmount(List<CartItemEntity> items) {
                 return items.stream().map(CartItemEntity::calculateLineTotal)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -91,11 +96,18 @@ public class OrderDomainService {
         public OrderEntity buildBuyNowOrder(UserEntity user, String note,
                         ProductVariantEntity variant, int qty,
                         PaymentMethod method) {
+                return buildBuyNowOrder(user, note, variant, qty, method, null);
+        }
 
-                BigDecimal amount = variant.getSalePrice().multiply(BigDecimal.valueOf(qty));
+        public OrderEntity buildBuyNowOrder(UserEntity user, String note,
+                        ProductVariantEntity variant, int qty,
+                        PaymentMethod method, BigDecimal unitPriceOverride) {
+
+                BigDecimal unitPrice = unitPriceOverride != null ? unitPriceOverride : variant.getSalePrice();
+                BigDecimal amount = unitPrice.multiply(BigDecimal.valueOf(qty));
 
                 OrderItemEntity item = OrderItemEntity.builder()
-                                .unitPrice(variant.getSalePrice())
+                                .unitPrice(unitPrice)
                                 .unitCost(resolveUnitCost(variant))
                                 .product(variant.getProduct())
                                 .variant(variant)

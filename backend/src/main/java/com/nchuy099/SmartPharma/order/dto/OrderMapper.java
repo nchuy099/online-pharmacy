@@ -26,6 +26,10 @@ public class OrderMapper {
         private final SePayService sePayService;
 
         public PreviewResponse toBuyNowPreview(ProductVariantEntity variant, int qty, BigDecimal amount) {
+                return toBuyNowPreview(variant, qty, amount, variant.getSalePrice());
+        }
+
+        public PreviewResponse toBuyNowPreview(ProductVariantEntity variant, int qty, BigDecimal amount, BigDecimal unitPrice) {
                 return PreviewResponse.builder()
                                 .itemTotalAmount(amount)
                                 .finalAmount(amount)
@@ -41,7 +45,7 @@ public class OrderMapper {
                                                                 .productSlug(variant.getProduct().getSlug())
                                                                 .productImageUrl(variant.getProduct().getPrimaryImage())
                                                                 .quantity(qty)
-                                                                .unitPrice(variant.getSalePrice())
+                                                                .unitPrice(unitPrice)
                                                                 .build()))
                                 .build();
         }
@@ -131,6 +135,7 @@ public class OrderMapper {
                                                                         .productImageUrl(i.getSnapshotPrimaryImage())
                                                                         .quantity(i.getQuantity())
                                                                         .unitPrice(i.getUnitPrice())
+                                                                        .flashSaleReservationId(order.getFlashSaleReservationId())
                                                                         .build();
 
                                                         if (i.getReview() != null) {

@@ -1,7 +1,7 @@
 import React from "react";
 import { FaMinus, FaPlus, FaShoppingBasket } from "react-icons/fa";
 import type { ProductVariant } from "../types/domain";
-import { formatUnitType, formatVND, isVariantPurchasable } from "../product.utils";
+import { formatUnitType, formatVND, getLiveFlashSale, isVariantPurchasable } from "../product.utils";
 
 interface Props {
     variants: ProductVariant[];
@@ -12,6 +12,7 @@ interface Props {
     onAddToCart: () => void;
     onBuyNow: () => void;
     isProcessing: boolean;
+    liveFlashSaleRemainingStock?: number | null;
 }
 
 export const ProductPurchaseActions: React.FC<Props> = ({
@@ -23,10 +24,14 @@ export const ProductPurchaseActions: React.FC<Props> = ({
     onAddToCart,
     onBuyNow,
     isProcessing,
+    liveFlashSaleRemainingStock,
 }) => {
     const activeVariants = variants.filter(v => v.isActive);
-    const maxQuantity = selectedVariant?.availableQuantity ?? 0;
-    const isOutOfStock = !selectedVariant || !isVariantPurchasable(selectedVariant);
+    const flashSale = getLiveFlashSale(selectedVariant);
+    const maxQuantity = flashSale
+        ? (liveFlashSaleRemainingStock ?? flashSale.remainingStock ?? 0)
+        : (selectedVariant?.availableQuantity ?? 0);
+    const isOutOfStock = !selectedVariant || (flashSale ? maxQuantity <= 0 : !isVariantPurchasable(selectedVariant));
     const canPurchase = selectedVariant && !isOutOfStock && !isProcessing;
 
     return (
@@ -63,10 +68,10 @@ export const ProductPurchaseActions: React.FC<Props> = ({
             )}
 
             {/* Available stock info */}
-            {selectedVariant && selectedVariant.availableQuantity != null && (
+            {selectedVariant && (selectedVariant.availableQuantity != null || flashSale) && (
                 <p className="text-xs text-gray-400 font-medium mb-3">
-                    {selectedVariant.availableQuantity > 0
-                        ? <span className="text-emerald-600 font-bold">Còn {selectedVariant.availableQuantity} sản phẩm</span>
+                    {maxQuantity > 0
+                        ? <span className="text-emerald-600 font-bold">Còn {maxQuantity} sản phẩm</span>
                         : <span className="text-red-500 font-bold">Hết hàng</span>
                     }
                 </p>
@@ -74,10 +79,21 @@ export const ProductPurchaseActions: React.FC<Props> = ({
 
             {selectedVariant && (
                 <div className="mb-5">
+                    {flashSale && (
+                        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-red-100 bg-red-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-600">
+                            Flash sale
+                            <span className="text-red-500">- {formatVND(flashSale.flashPrice)}</span>
+                        </div>
+                    )}
                     <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className="text-3xl font-black text-emerald-600 tracking-tight">
-                            {formatVND(selectedVariant.salePrice)} <span className="text-xl font-bold">₫</span>
+                        <span className={`text-3xl font-black tracking-tight ${flashSale ? "text-red-600" : "text-emerald-600"}`}>
+                            {formatVND(flashSale?.flashPrice ?? selectedVariant.salePrice)} <span className="text-xl font-bold">₫</span>
                         </span>
+                        {flashSale && flashSale.originalPrice != null && flashSale.originalPrice > flashSale.flashPrice && (
+                            <span className="text-sm font-semibold text-gray-400 line-through">
+                                {formatVND(flashSale.originalPrice)}
+                            </span>
+                        )}
                         <span className="text-sm text-gray-400 font-medium">
                             / {formatUnitType(selectedVariant.unitType)}
                         </span>
