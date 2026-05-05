@@ -1,0 +1,12 @@
+metric_name,timestamp,metric_value,check,error,error_code,expected_response,group,method,name,proto,scenario,service,status,subproto,tls_version,url,extra_tags,metadata
+http_reqs,1781743743,1.000000,,,1401,false,::setup,POST,http://13.222.219.223:8080/auth/login,HTTP/1.1,,,401,,,http://13.222.219.223:8080/auth/login,,
+http_req_duration,1781743743,494.650958,,,1401,false,::setup,POST,http://13.222.219.223:8080/auth/login,HTTP/1.1,,,401,,,http://13.222.219.223:8080/auth/login,,
+http_req_blocked,1781743743,310.778105,,,1401,false,::setup,POST,http://13.222.219.223:8080/auth/login,HTTP/1.1,,,401,,,http://13.222.219.223:8080/auth/login,,
+http_req_connecting,1781743743,310.682946,,,1401,false,::setup,POST,http://13.222.219.223:8080/auth/login,HTTP/1.1,,,401,,,http://13.222.219.223:8080/auth/login,,
+http_req_tls_handshaking,1781743743,0.000000,,,1401,false,::setup,POST,http://13.222.219.223:8080/auth/login,HTTP/1.1,,,401,,,http://13.222.219.223:8080/auth/login,,
+http_req_sending,1781743743,0.086055,,,1401,false,::setup,POST,http://13.222.219.223:8080/auth/login,HTTP/1.1,,,401,,,http://13.222.219.223:8080/auth/login,,
+http_req_waiting,1781743743,494.348386,,,1401,false,::setup,POST,http://13.222.219.223:8080/auth/login,HTTP/1.1,,,401,,,http://13.222.219.223:8080/auth/login,,
+http_req_receiving,1781743743,0.216517,,,1401,false,::setup,POST,http://13.222.219.223:8080/auth/login,HTTP/1.1,,,401,,,http://13.222.219.223:8080/auth/login,,
+http_req_failed,1781743743,1.000000,,,1401,false,::setup,POST,http://13.222.219.223:8080/auth/login,HTTP/1.1,,,401,,,http://13.222.219.223:8080/auth/login,,
+data_sent,1781743743,197.000000,,,,,::setup,,,,,,,,,,,
+data_received,1781743743,552.000000,,,,,::setup,,,,,,,,,,,

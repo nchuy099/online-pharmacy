@@ -1,0 +1,5 @@
+timestamp,duration_ms,method,status,url,scenario,group,name,error,error_code,proto,tls_version,extra_tags
+1781743769,317.336,POST,200,http://13.222.219.223:8080/auth/login,,::setup,http://13.222.219.223:8080/auth/login,-,,HTTP/1.1,,
+1781743770,820.583,GET,200,http://13.222.219.223:8080/products/list?page=1&size=20&sortBy=createdAt_desc,load,,http://13.222.219.223:8080/products/list?page=1&size=20&sortBy=createdAt_desc,-,,HTTP/1.1,,
+1781743771,647.581,GET,200,http://13.222.219.223:8080/products/list?page=1&size=20&search=pain%20relief,load,,http://13.222.219.223:8080/products/list?page=1&size=20&search=pain%20relief,-,,HTTP/1.1,,
+1781743773,280.535,GET,200,http://13.222.219.223:8080/products/0faae79c-4bde-43a0-88e5-3af84f835fdd/details,load,,http://13.222.219.223:8080/products/0faae79c-4bde-43a0-88e5-3af84f835fdd/details,-,,HTTP/1.1,,

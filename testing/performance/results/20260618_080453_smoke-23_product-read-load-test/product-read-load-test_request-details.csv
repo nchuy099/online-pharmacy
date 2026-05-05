@@ -1,0 +1,5 @@
+timestamp,duration_ms,method,status,url,scenario,group,name,error,error_code,proto,tls_version,extra_tags
+1781744694,391.134,POST,200,http://13.222.219.223:8080/auth/login,,::setup,http://13.222.219.223:8080/auth/login,-,,HTTP/1.1,,
+1781744695,663.092,GET,200,http://13.222.219.223:8080/products/list?page=1&size=20,load,,http://13.222.219.223:8080/products/list?page=1&size=20,-,,HTTP/1.1,,
+1781744697,633.226,GET,200,http://13.222.219.223:8080/products/list?page=1&size=20,load,,http://13.222.219.223:8080/products/list?page=1&size=20,-,,HTTP/1.1,,
+1781744698,539.364,GET,200,http://13.222.219.223:8080/products/ac647e67-fded-43ad-8fab-04b9b190b051/details,load,,http://13.222.219.223:8080/products/ac647e67-fded-43ad-8fab-04b9b190b051/details,-,,HTTP/1.1,,
