@@ -1,5 +1,4 @@
 services:
-
   qdrant:
     image: qdrant/qdrant:latest
     container_name: smart-pharma-qdrant
@@ -10,12 +9,13 @@ services:
       - qdrant_data:/qdrant/storage
     networks:
       - smart-pharma-network
+    restart: unless-stopped
 
   postgres:
     image: postgres:15-alpine
     container_name: smart-pharma-postgres
     ports:
-      - "5434:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
@@ -29,29 +29,26 @@ services:
       retries: 5
     networks:
       - smart-pharma-network
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     container_name: smart-pharma-redis
     ports:
-      - "6380:6379"
+      - "6379:6379"
     networks:
       - smart-pharma-network
+    restart: unless-stopped
 
-  # Backend Service
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME}/smart-pharma-backend:latest
+    container_name: smart-pharma-backend
     env_file:
       - ./backend/.env.cloud
-    container_name: smart-pharma-backend
     ports:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=cloud
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
     networks:
       - smart-pharma-network
     depends_on:
@@ -59,6 +56,34 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    restart: unless-stopped
+
+  chatbot-ai:
+    image: ${DOCKER_USERNAME}/smart-pharma-chatbot-ai:latest
+    container_name: smart-pharma-chatbot-ai
+    env_file:
+      - ./chatbot-ai/.env.cloud
+    ports:
+      - "8001:8001"
+    networks:
+      - smart-pharma-network
+    depends_on:
+      - qdrant
+    restart: unless-stopped
+
+  rcm-service:
+    image: ${DOCKER_USERNAME}/smart-pharma-rcm-service:latest
+    container_name: smart-pharma-rcm-service
+    env_file:
+      - ./rcm-service/.env.cloud
+    ports:
+      - "8002:8002"
+    networks:
+      - smart-pharma-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
 
 networks:
   smart-pharma-network:

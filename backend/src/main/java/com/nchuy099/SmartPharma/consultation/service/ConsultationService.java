@@ -16,7 +16,7 @@ import com.nchuy099.SmartPharma.chat.entity.ChatConversationEntity;
 import com.nchuy099.SmartPharma.chat.repository.ChatConversationRepository;
 import com.nchuy099.SmartPharma.order.domain.entity.OrderEntity;
 import com.nchuy099.SmartPharma.order.domain.repository.OrderRepository;
-import com.nchuy099.SmartPharma.order.dto.OrderMapper;
+import com.nchuy099.SmartPharma.order.dto.mapper.OrderMapper;
 import com.nchuy099.SmartPharma.order.dto.response.OrderResponse;
 import com.nchuy099.SmartPharma.consultation.dto.request.PrescriptionRequest;
 import com.nchuy099.SmartPharma.consultation.dto.response.PatientHistoryResponse;

@@ -41,6 +41,7 @@ import com.nchuy099.SmartPharma.flashsale.domain.FlashSaleCampaignStatus;
 import com.nchuy099.SmartPharma.flashsale.domain.FlashSaleCampaignType;
 import com.nchuy099.SmartPharma.flashsale.domain.FlashSaleItemStatus;
 import com.nchuy099.SmartPharma.flashsale.domain.FlashSaleSlot;
+import com.nchuy099.SmartPharma.flashsale.dto.request.ClaimFlashSaleRequest;
 import com.nchuy099.SmartPharma.flashsale.dto.response.FlashSaleCampaignResponse;
 import com.nchuy099.SmartPharma.flashsale.dto.response.FlashSaleItemResponse;
 import com.nchuy099.SmartPharma.flashsale.entity.FlashSaleCampaignEntity;
@@ -54,6 +55,9 @@ import com.nchuy099.SmartPharma.order.domain.repository.OrderRepository;
 import com.nchuy099.SmartPharma.product.entity.ProductEntity;
 import com.nchuy099.SmartPharma.product.entity.ProductVariantEntity;
 import com.nchuy099.SmartPharma.product.repository.ProductVariantRepository;
+import com.nchuy099.SmartPharma.user.entity.RoleEntity;
+import com.nchuy099.SmartPharma.user.entity.UserEntity;
+import com.nchuy099.SmartPharma.user.enums.RoleType;
 import com.nchuy099.SmartPharma.user.repository.UserRepository;
 
 class FlashSaleServiceTest {
@@ -275,6 +279,25 @@ class FlashSaleServiceTest {
         assertEquals(4, result.get(0).getRemainingStock());
     }
 
+    @Test
+    void parseClaimResultShouldExtractErrorReason() {
+        Object result = ReflectionTestUtils.invokeMethod(service, "parseClaimResult", "ERR|OUT_OF_STOCK");
+        assertNotNull(result);
+        assertEquals("ERR", ReflectionTestUtils.getField(result, "status"));
+        assertEquals("OUT_OF_STOCK", ReflectionTestUtils.getField(result, "message"));
+    }
+
+    @Test
+    void resolveClaimErrorMessageShouldMapKnownReasons() {
+        Object outOfStock = ReflectionTestUtils.invokeMethod(service, "resolveClaimErrorMessage", "OUT_OF_STOCK");
+        Object perUserLimit = ReflectionTestUtils.invokeMethod(service, "resolveClaimErrorMessage", "PER_USER_LIMIT");
+        Object fallback = ReflectionTestUtils.invokeMethod(service, "resolveClaimErrorMessage", "SOMETHING_ELSE");
+
+        assertEquals("Flash sale stock is out of stock", outOfStock);
+        assertEquals("You have reached the flash sale limit", perUserLimit);
+        assertEquals("SOMETHING_ELSE", fallback);
+    }
+
     private FlashSaleCampaignEntity campaign(String code, FlashSaleCampaignType type, Instant startAt, Instant endAt) {
         FlashSaleCampaignEntity campaign = FlashSaleCampaignEntity.builder()
                 .code(code)
@@ -324,6 +347,32 @@ class FlashSaleServiceTest {
         item.setId(UUID.randomUUID());
         campaign.getItems().add(item);
         return item;
+    }
+
+    private void userRepositoryStub(UUID userId) {
+        RoleEntity role = RoleEntity.builder()
+                .name("CUSTOMER")
+                .roleType(RoleType.CUSTOMER)
+                .build();
+        role.setId(UUID.randomUUID());
+
+        UserEntity user = UserEntity.builder()
+                .email("user@example.com")
+                .fullName("Test User")
+                .password("secret")
+                .role(role)
+                .build();
+        user.setId(userId);
+
+        when(securityUtils.getCurrentUserId()).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    }
+
+    private ClaimFlashSaleRequest claimRequest() {
+        ClaimFlashSaleRequest request = new ClaimFlashSaleRequest();
+        request.setQuantity(1);
+        request.setIdempotencyKey(UUID.randomUUID().toString());
+        return request;
     }
 
     private String stockKey(UUID itemId) {

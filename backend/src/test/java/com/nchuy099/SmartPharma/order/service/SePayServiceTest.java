@@ -3,10 +3,8 @@ package com.nchuy099.SmartPharma.order.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -19,31 +17,34 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.nchuy099.SmartPharma.order.domain.entity.OrderEntity;
-import com.nchuy099.SmartPharma.order.domain.entity.PaymentEntity;
 import com.nchuy099.SmartPharma.order.domain.enums.OrderStatus;
-import com.nchuy099.SmartPharma.order.domain.enums.PaymentMethod;
-import com.nchuy099.SmartPharma.order.domain.enums.PaymentStatus;
+import com.nchuy099.SmartPharma.order.domain.policy.OrderStatusPolicy;
 import com.nchuy099.SmartPharma.order.domain.repository.OrderRepository;
-import com.nchuy099.SmartPharma.order.domain.repository.PaymentRepository;
-import com.nchuy099.SmartPharma.order.dto.request.SePayWebhookRequest;
+import com.nchuy099.SmartPharma.payment.application.webhook.ProcessSePayWebhookUseCase;
+import com.nchuy099.SmartPharma.payment.domain.entity.PaymentEntity;
+import com.nchuy099.SmartPharma.payment.domain.enums.PaymentMethod;
+import com.nchuy099.SmartPharma.payment.domain.enums.PaymentStatus;
+import com.nchuy099.SmartPharma.payment.dto.request.SePayWebhookRequest;
+import com.nchuy099.SmartPharma.payment.repository.PaymentRepository;
 
 class SePayServiceTest {
 
     private OrderRepository orderRepository;
     private PaymentRepository paymentRepository;
-    private OrderStatusTransitionService orderStatusTransitionService;
-    private SePayService sePayService;
+    private OrderStatusPolicy orderStatusPolicy;
+    private ProcessSePayWebhookUseCase processSePayWebhookUseCase;
 
     @BeforeEach
     void setUp() {
         orderRepository = mock(OrderRepository.class);
         paymentRepository = mock(PaymentRepository.class);
-        orderStatusTransitionService = spy(new OrderStatusTransitionService());
+        orderStatusPolicy = new OrderStatusPolicy();
 
-        sePayService = new SePayService(orderRepository, paymentRepository, orderStatusTransitionService);
-        ReflectionTestUtils.setField(sePayService, "sepayApiKey", "secret");
-        ReflectionTestUtils.setField(sePayService, "accountNumber", "0123499999");
-        ReflectionTestUtils.setField(sePayService, "bankName", "MBBank");
+        processSePayWebhookUseCase = new ProcessSePayWebhookUseCase(orderRepository, paymentRepository,
+                orderStatusPolicy);
+        ReflectionTestUtils.setField(processSePayWebhookUseCase, "sepayApiKey", "secret");
+        ReflectionTestUtils.setField(processSePayWebhookUseCase, "accountNumber", "0123499999");
+        ReflectionTestUtils.setField(processSePayWebhookUseCase, "bankName", "MBBank");
     }
 
     @Test
@@ -69,13 +70,13 @@ class SePayServiceTest {
         when(orderRepository.save(order)).thenReturn(order);
         when(paymentRepository.save(payment)).thenReturn(payment);
 
-        Map<String, Object> response = sePayService.processWebhook("Apikey secret", webhook(orderCode, "123", new BigDecimal("500")));
+        Map<String, Object> response = processSePayWebhookUseCase.processWebhook("Apikey secret",
+                webhook(orderCode, "123", new BigDecimal("500")));
 
         assertFalse((Boolean) response.get("success"));
         assertEquals("Partial payment", response.get("message"));
         assertEquals(PaymentStatus.PARTIAL, payment.getStatus());
         assertEquals(OrderStatus.PENDING_PAYMENT, order.getStatus());
-        verify(orderStatusTransitionService).markPartialPayment(order);
         verify(orderRepository).save(order);
         verify(paymentRepository).save(payment);
     }
@@ -103,14 +104,14 @@ class SePayServiceTest {
         when(orderRepository.save(order)).thenReturn(order);
         when(paymentRepository.save(payment)).thenReturn(payment);
 
-        Map<String, Object> response = sePayService.processWebhook("Apikey secret", webhook(orderCode, "123", new BigDecimal("1000")));
+        Map<String, Object> response = processSePayWebhookUseCase.processWebhook("Apikey secret",
+                webhook(orderCode, "123", new BigDecimal("1000")));
 
         assertTrue((Boolean) response.get("success"));
         assertEquals("Payment processed successfully", response.get("message"));
         assertEquals(PaymentStatus.COMPLETED, payment.getStatus());
         assertEquals("123", payment.getExternalTransactionId());
         assertEquals(OrderStatus.PENDING, order.getStatus());
-        verify(orderStatusTransitionService).markPaymentSuccess(order);
         verify(orderRepository).save(order);
         verify(paymentRepository).save(payment);
     }

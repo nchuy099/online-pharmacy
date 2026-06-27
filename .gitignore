@@ -14,3 +14,4 @@ gcp-service-account.json
 .pytest_cache
 script.txt
 *.save
+smart-pharma.pem

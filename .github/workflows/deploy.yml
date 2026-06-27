@@ -3,7 +3,7 @@ name: Deploy Backend Services
 on:
   push:
     branches:
-      - master
+      - deploy
 
 jobs:
   build-and-deploy:
@@ -77,7 +77,14 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ~/online-pharmacy-deploy
-            docker compose -f docker-compose-cloud.yml pull
-            docker compose -f docker-compose-cloud.yml up -d
+            cd ~/online-pharmacy
+            git fetch origin deploy
+            git checkout deploy
+            git reset --hard origin/deploy
+
+            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+
+            docker compose -f docker-compose-cloud.yml pull backend chatbot-ai rcm-service
+            docker compose -f docker-compose-cloud.yml up -d postgres redis qdrant
+            docker compose -f docker-compose-cloud.yml up -d backend chatbot-ai rcm-service
             docker image prune -f

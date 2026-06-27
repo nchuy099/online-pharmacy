@@ -61,6 +61,10 @@ export const resolveApiErrorMessage = (error: unknown, fallback: string): string
                 return message;
             }
 
+            if (message) {
+                return message;
+            }
+
             const translated = ERROR_MESSAGES[code];
             if (translated) {
                 return translated;

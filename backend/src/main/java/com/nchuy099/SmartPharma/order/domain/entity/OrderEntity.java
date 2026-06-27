@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.nchuy099.SmartPharma.common.entity.AbstractEntity;
 import com.nchuy099.SmartPharma.order.domain.enums.OrderStatus;
+import com.nchuy099.SmartPharma.payment.domain.entity.PaymentEntity;
 import com.nchuy099.SmartPharma.user.entity.UserEntity;
 
 import jakarta.persistence.CascadeType;

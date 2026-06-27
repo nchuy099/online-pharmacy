@@ -49,8 +49,6 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=local
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
     networks:
       - smart-pharma-network
     depends_on:
@@ -58,6 +56,40 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+  # AI Services
+  chatbot-ai:
+    build:
+      context: ./chatbot-ai
+      dockerfile: Dockerfile
+    container_name: smart-pharma-chatbot
+    env_file:
+      - ./chatbot-ai/.env.local
+    ports:
+      - "8001:8001"
+    networks:
+      - smart-pharma-network
+    depends_on:
+      qdrant:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  rcm-service:
+    build:
+      context: ./rcm-service
+      dockerfile: Dockerfile
+    container_name: smart-pharma-rcm
+    env_file:
+      - ./rcm-service/.env.local
+    ports:
+      - "8002:8002"
+    networks:
+      - smart-pharma-network
+    depends_on:
+      qdrant:
+        condition: service_started
+      postgres:
+        condition: service_healthy
 
 networks:
   smart-pharma-network:

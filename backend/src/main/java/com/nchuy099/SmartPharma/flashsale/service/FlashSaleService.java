@@ -418,7 +418,10 @@ public class FlashSaleService {
         ClaimResult claimResult = parseClaimResult(result);
 
         if (!"OK".equals(claimResult.status) && !"EXISTING".equals(claimResult.status)) {
-            throw new AppException(ErrorCode.CONFLICT, claimResult.message != null ? claimResult.message : "Unable to claim flash sale stock");
+            if ("REDIS_FAILURE".equals(claimResult.message)) {
+                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Flash sale service is temporarily unavailable");
+            }
+            throw new AppException(ErrorCode.CONFLICT, resolveClaimErrorMessage(claimResult.message));
         }
 
         Instant expiresAt = Instant.now().plusSeconds(reservationTtlSeconds);
@@ -813,19 +816,36 @@ public class FlashSaleService {
     }
 
     private ClaimResult parseClaimResult(String result) {
-        String[] parts = result.split("\\|");
+        String[] parts = result.split("\\|", 3);
         if (parts.length < 2) {
             return new ClaimResult("ERR", null, "Invalid claim response");
         }
         Integer remaining = null;
-        if (parts.length >= 2) {
+        String message = null;
+
+        if ("ERR".equals(parts[0])) {
+            message = parts[1];
+        } else {
             try {
                 remaining = Integer.parseInt(parts[1]);
             } catch (NumberFormatException ignored) {
             }
+            if (parts.length >= 3) {
+                message = parts[2];
+            }
         }
-        String message = parts.length >= 3 ? parts[2] : null;
         return new ClaimResult(parts[0], remaining, message);
+    }
+
+    private String resolveClaimErrorMessage(String reason) {
+        if (!StringUtils.hasText(reason)) {
+            return "Unable to claim flash sale stock";
+        }
+        return switch (reason) {
+            case "OUT_OF_STOCK" -> "Flash sale stock is out of stock";
+            case "PER_USER_LIMIT" -> "You have reached the flash sale limit";
+            default -> reason;
+        };
     }
 
     private FlashSaleCampaignResponse toCampaignResponse(FlashSaleCampaignEntity campaign) {

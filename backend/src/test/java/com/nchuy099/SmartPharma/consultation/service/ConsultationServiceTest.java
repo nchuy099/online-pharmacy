@@ -21,7 +21,7 @@ import com.nchuy099.SmartPharma.consultation.dto.request.PrescriptionRequest;
 import com.nchuy099.SmartPharma.consultation.entity.PrescriptionEntity;
 import com.nchuy099.SmartPharma.consultation.repository.PrescriptionRepository;
 import com.nchuy099.SmartPharma.order.domain.repository.OrderRepository;
-import com.nchuy099.SmartPharma.order.dto.OrderMapper;
+import com.nchuy099.SmartPharma.order.dto.mapper.OrderMapper;
 import com.nchuy099.SmartPharma.product.entity.ProductEntity;
 import com.nchuy099.SmartPharma.product.repository.ProductRepository;
 import com.nchuy099.SmartPharma.user.entity.UserEntity;
