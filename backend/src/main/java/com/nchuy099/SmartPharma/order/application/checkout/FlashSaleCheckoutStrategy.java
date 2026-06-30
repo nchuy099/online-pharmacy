@@ -9,7 +9,7 @@ import com.nchuy099.SmartPharma.common.exception.AppException;
 import com.nchuy099.SmartPharma.common.exception.ErrorCode;
 import com.nchuy099.SmartPharma.flashsale.dto.response.FlashSaleReservationView;
 import com.nchuy099.SmartPharma.flashsale.service.FlashSaleService;
-import com.nchuy099.SmartPharma.inventory.service.InventoryDomainService;
+import com.nchuy099.SmartPharma.inventory.service.InventoryQueryService;
 import com.nchuy099.SmartPharma.order.application.create.CheckoutContext;
 import com.nchuy099.SmartPharma.order.domain.enums.OrderMode;
 import com.nchuy099.SmartPharma.order.domain.service.OrderAmountCalculator;
@@ -22,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class FlashSaleCheckoutStrategy implements CheckoutStrategy {
 
-    private final InventoryDomainService inventoryDomainService;
+    private final InventoryQueryService inventoryQueryService;
     private final FlashSaleService flashSaleService;
     private final OrderAmountCalculator orderAmountCalculator;
 
@@ -36,7 +36,7 @@ public class FlashSaleCheckoutStrategy implements CheckoutStrategy {
         validate(request.getBuyNowItem() != null ? request.getBuyNowItem().getVariantId() : null,
                 request.getBuyNowItem() != null ? request.getBuyNowItem().getQuantity() : null,
                 request.getFlashSaleReservationId());
-        var inventory = inventoryDomainService.getInventory(request.getBuyNowItem().getVariantId());
+        var inventory = inventoryQueryService.getInventorySummary(request.getBuyNowItem().getVariantId());
         FlashSaleReservationView reservation = flashSaleService.resolveReservationForCheckout(
                 request.getFlashSaleReservationId(), userId);
         validateReservation(request.getBuyNowItem().getVariantId(), request.getBuyNowItem().getQuantity(), reservation);
@@ -57,7 +57,7 @@ public class FlashSaleCheckoutStrategy implements CheckoutStrategy {
         validate(request.getBuyNowItem() != null ? request.getBuyNowItem().getVariantId() : null,
                 request.getBuyNowItem() != null ? request.getBuyNowItem().getQuantity() : null,
                 request.getFlashSaleReservationId());
-        var inventory = inventoryDomainService.getInventory(request.getBuyNowItem().getVariantId());
+        var inventory = inventoryQueryService.getInventorySummary(request.getBuyNowItem().getVariantId());
         FlashSaleReservationView reservation = flashSaleService.resolveReservationForCheckout(
                 request.getFlashSaleReservationId(), userId);
         validateReservation(request.getBuyNowItem().getVariantId(), request.getBuyNowItem().getQuantity(), reservation);

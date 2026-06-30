@@ -5,7 +5,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 import com.nchuy099.SmartPharma.cart.service.CartService;
-import com.nchuy099.SmartPharma.inventory.service.InventoryDomainService;
+import com.nchuy099.SmartPharma.inventory.service.InventoryQueryService;
 import com.nchuy099.SmartPharma.order.application.create.CheckoutContext;
 import com.nchuy099.SmartPharma.order.domain.enums.OrderMode;
 import com.nchuy099.SmartPharma.order.domain.service.OrderAmountCalculator;
@@ -19,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 public class CartCheckoutStrategy implements CheckoutStrategy {
 
     private final CartService cartService;
-    private final InventoryDomainService inventoryDomainService;
+    private final InventoryQueryService inventoryQueryService;
     private final OrderAmountCalculator orderAmountCalculator;
 
     @Override
@@ -30,7 +30,7 @@ public class CartCheckoutStrategy implements CheckoutStrategy {
     @Override
     public CheckoutContext prepareForPreview(OrderPreviewRequest request, UUID userId) {
         var cartItems = cartService.getSelectedCartItems(userId);
-        inventoryDomainService.ensureCartAvailable(cartItems);
+        cartItems.forEach(item -> inventoryQueryService.validateAvailableStock(item.getVariant().getId(), item.getQuantity()));
         return CheckoutContext.builder()
                 .mode(OrderMode.CART)
                 .cartItems(cartItems)
@@ -41,7 +41,7 @@ public class CartCheckoutStrategy implements CheckoutStrategy {
     @Override
     public CheckoutContext prepareForCreate(OrderCreateRequest request, UUID userId) {
         var cartItems = cartService.getSelectedCartItems(userId);
-        inventoryDomainService.reserveCart(cartItems);
+        cartItems.forEach(item -> inventoryQueryService.validateAvailableStock(item.getVariant().getId(), item.getQuantity()));
         return CheckoutContext.builder()
                 .mode(OrderMode.CART)
                 .cartItems(cartItems)

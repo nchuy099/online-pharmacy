@@ -26,8 +26,7 @@ import com.nchuy099.SmartPharma.common.exception.AppException;
 import com.nchuy099.SmartPharma.common.exception.ErrorCode;
 import com.nchuy099.SmartPharma.common.utils.CursorUtils;
 import com.nchuy099.SmartPharma.common.utils.SecurityUtils;
-import com.nchuy099.SmartPharma.inventory.service.InventoryDomainService;
-import com.nchuy099.SmartPharma.inventory.entity.InventoryEntity;
+import com.nchuy099.SmartPharma.inventory.service.InventoryQueryService;
 import com.nchuy099.SmartPharma.product.entity.ProductVariantEntity;
 import com.nchuy099.SmartPharma.product.repository.ProductVariantRepository;
 import com.nchuy099.SmartPharma.user.entity.UserEntity;
@@ -45,7 +44,7 @@ public class CartService {
     private final CartItemRepository cartItemRepository;
     private final CartRepository cartRepository;
     private final SecurityUtils securityUtils;
-    private final InventoryDomainService inventoryDomainService;
+    private final InventoryQueryService inventoryQueryService;
     private final ProductVariantRepository productVariantRepository;
     private final UserRepository userRepository;
 
@@ -69,8 +68,8 @@ public class CartService {
             throw new AppException(ErrorCode.BAD_REQUEST, "Invalid variantId: " + req.getVariantId());
         }
 
-        InventoryEntity inventory = inventoryDomainService.getInventory(variantId.toString());
-        ProductVariantEntity variant = inventory.getVariant();
+        ProductVariantEntity variant = productVariantRepository.findByIdWithProduct(variantId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Product variant not found"));
 
         // cart
 
@@ -91,7 +90,7 @@ public class CartService {
                         });
 
         int nextQuantity = item.getQuantity() + req.getQuantity();
-        ensureQuantityWithinAvailableStock(inventory, nextQuantity);
+        inventoryQueryService.validateAvailableStock(variantId, nextQuantity);
         item.setQuantity(nextQuantity);
     }
 
@@ -120,11 +119,7 @@ public class CartService {
                 return getDetails(null, 10); // Or appropriate cursor/size
             }
 
-            ensureQuantityWithinAvailableStock(
-                    item.getVariant().getInventory() != null
-                            ? item.getVariant().getInventory()
-                            : inventoryDomainService.getInventory(item.getVariant().getId().toString()),
-                    qty);
+            inventoryQueryService.validateAvailableStock(item.getVariant().getId(), qty);
             item.setQuantity(qty);
         }
 
@@ -262,7 +257,7 @@ public class CartService {
                                         .imageUrl(item.getVariant().getProduct().getPrimaryImage())
                                         .availableQuantity(item.getVariant().getInventory() != null
                                                 ? item.getVariant().getInventory().getQuantityAvailable()
-                                                : 0)
+                                                : inventoryQueryService.getAvailableQuantity(item.getVariant().getId()))
                                         .build())
                                 .build())
                         .toList())
@@ -280,15 +275,6 @@ public class CartService {
 
     public List<CartItemEntity> getCartItemsByVariants(List<UUID> variantIds, UUID userId) {
         return cartItemRepository.findByVariant_IdInAndCart_User_Id(variantIds, userId);
-    }
-
-    private void ensureQuantityWithinAvailableStock(InventoryEntity inventory, int requestedQuantity) {
-        int availableQuantity = inventory != null ? inventory.getQuantityAvailable() : 0;
-        if (requestedQuantity > availableQuantity) {
-            log.warn("Requested quantity {} exceeds available stock {} for variant {}", requestedQuantity, availableQuantity,
-                    inventory != null && inventory.getVariant() != null ? inventory.getVariant().getId() : null);
-            throw new AppException(ErrorCode.CONFLICT, "Not enough stock to reserve");
-        }
     }
 
     public List<CartItemEntity> getValidCartItems(List<String> cartItemStringIds, UUID userId) {

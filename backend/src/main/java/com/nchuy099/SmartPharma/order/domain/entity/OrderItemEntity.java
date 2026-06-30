@@ -1,6 +1,8 @@
 package com.nchuy099.SmartPharma.order.domain.entity;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.nchuy099.SmartPharma.common.entity.AbstractEntity;
 import com.nchuy099.SmartPharma.product.entity.ProductEntity;
@@ -12,6 +14,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -70,6 +73,10 @@ public class OrderItemEntity extends AbstractEntity {
 
     @OneToOne(mappedBy = "orderItem", fetch = FetchType.EAGER)
     ReviewEntity review;
+
+    @OneToMany(mappedBy = "orderItem", fetch = FetchType.LAZY)
+    @Builder.Default
+    List<OrderItemInventoryAllocationEntity> inventoryAllocations = new ArrayList<>();
 
     public BigDecimal calculateTotalPrice() {
         if (this.totalPrice == null) {

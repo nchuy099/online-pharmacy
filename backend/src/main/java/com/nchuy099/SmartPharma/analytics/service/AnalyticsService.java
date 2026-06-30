@@ -6,7 +6,7 @@ import com.nchuy099.SmartPharma.analytics.dto.response.AnalyticsSnapshotSummaryR
 import com.nchuy099.SmartPharma.order.domain.repository.OrderItemRepository;
 import com.nchuy099.SmartPharma.order.domain.enums.OrderStatus;
 import com.nchuy099.SmartPharma.order.domain.repository.OrderRepository;
-import com.nchuy099.SmartPharma.inventory.repository.InventoryRepository;
+import com.nchuy099.SmartPharma.inventory.repository.InventorySummaryRepository;
 import com.nchuy099.SmartPharma.product.repository.ProductRepository;
 import com.nchuy099.SmartPharma.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,7 @@ public class AnalyticsService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
-    private final InventoryRepository inventoryRepository;
+    private final InventorySummaryRepository inventoryRepository;
     private final UserRepository userRepository;
     private final ChatConversationRepository chatConversationRepository;
     private final AnalyticsSnapshotService analyticsSnapshotService;

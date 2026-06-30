@@ -13,6 +13,7 @@ import OrderPage from "../../features/order/pages/OrderPage";
 import OrderDetailsPage from "../../features/order/pages/OrderDetailsPage";
 import InventoryPage from "../../features/inventory/pages/InventoryPage";
 import InventoryTransactionPage from "../../features/inventory/pages/InventoryTransactionPage";
+import InventoryTransactionsPage from "../../features/inventory/pages/InventoryTransactionsPage";
 import ProfilePage from "../../features/profile/pages/ProfilePage";
 import UserDetailPage from "../../features/user/pages/UserDetailPage";
 import AdminsPage from "../../features/user/pages/AdminsPage";
@@ -64,8 +65,11 @@ const router = createBrowserRouter([
             { path: "products/new", element: <RequireRole allowedPermissions={["CREATE_PRODUCT"]}><ProductFormPage /></RequireRole> },
             { path: "products/:productId/edit", element: <RequireRole allowedPermissions={["UPDATE_PRODUCT"]}><ProductFormPage /></RequireRole> },
             { path: "products/:productId/details", element: <RequireRole allowedPermissions={["READ_PRODUCT"]}><ProductDetailsPage /></RequireRole> },
-            { path: "inventories", element: <RequireRole allowedPermissions={["READ_INVENTORY"]}><InventoryPage /></RequireRole> },
-            { path: "inventories/:id/transactions", element: <RequireRole allowedPermissions={["READ_INVENTORY"]}><InventoryTransactionPage /></RequireRole> },
+            { path: "inventories", element: <Navigate to="/inventories/summary" replace /> },
+            { path: "inventories/summary", element: <RequireRole allowedPermissions={["READ_INVENTORY"]}><InventoryPage /></RequireRole> },
+            { path: "inventories/:variantId/lots", element: <RequireRole allowedPermissions={["READ_INVENTORY"]}><InventoryTransactionPage /></RequireRole> },
+            { path: "inventories/:variantId/transactions", element: <RequireRole allowedPermissions={["READ_INVENTORY"]}><InventoryTransactionsPage /></RequireRole> },
+            { path: "inventories/:id/transactions", element: <Navigate to="/inventories/summary" replace /> },
             { path: "flash-sales", element: <RequireRole allowedPermissions={["MANAGE_FLASH_SALE"]}><FlashSalePage /></RequireRole> },
             { path: "flash-sales/new", element: <RequireRole allowedPermissions={["MANAGE_FLASH_SALE"]}><FlashSaleEditorPage /></RequireRole> },
             { path: "flash-sales/:campaignId", element: <RequireRole allowedPermissions={["MANAGE_FLASH_SALE"]}><FlashSaleEditorPage /></RequireRole> },

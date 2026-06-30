@@ -1,7 +1,18 @@
 import orderApi from '../api';
-import { Order, OrderDetails, OrderStatus } from '../types/domain';
-import { OrderResponse, OrderDetailsResponse } from '../types/dto';
+import { Order, OrderDetails, OrderItemInventoryAllocation, OrderStatus } from '../types/domain';
+import { OrderResponse, OrderDetailsResponse, OrderItemInventoryAllocationDto } from '../types/dto';
 import { Pagination } from '../../../shared/types/pagination';
+
+const mapApiAllocation = (item: OrderItemInventoryAllocationDto): OrderItemInventoryAllocation => ({
+    id: item.id || `${item.orderItemId || item.order_item_id}-${item.lotId || item.lot_id}`,
+    orderItemId: item.orderItemId || item.order_item_id || '',
+    lotId: item.lotId || item.lot_id || '',
+    lotNumber: item.lotNumber || item.lot_number || '',
+    expiryDate: item.expiryDate || item.expiry_date,
+    reservedQuantity: item.reservedQuantity ?? item.reserved_quantity ?? 0,
+    exportedQuantity: item.exportedQuantity ?? item.exported_quantity ?? 0,
+    status: item.status,
+});
 
 const mapApiOrder = (item: OrderResponse): Order => ({
     id: item.id,
@@ -12,7 +23,8 @@ const mapApiOrder = (item: OrderResponse): Order => ({
         productName: it.productName, 
         productSlug: it.productSlug,
         quantity: it.quantity, 
-        unitPrice: it.unitPrice 
+        unitPrice: it.unitPrice,
+        allocations: it.allocations?.map(mapApiAllocation) || [],
     })),
     finalAmount: item.finalAmount,
     shippingFee: item.shippingFee,

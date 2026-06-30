@@ -7,7 +7,7 @@ import org.springframework.util.StringUtils;
 
 import com.nchuy099.SmartPharma.common.exception.AppException;
 import com.nchuy099.SmartPharma.common.exception.ErrorCode;
-import com.nchuy099.SmartPharma.inventory.service.InventoryDomainService;
+import com.nchuy099.SmartPharma.inventory.service.InventoryQueryService;
 import com.nchuy099.SmartPharma.order.application.create.CheckoutContext;
 import com.nchuy099.SmartPharma.order.domain.enums.OrderMode;
 import com.nchuy099.SmartPharma.order.domain.service.OrderAmountCalculator;
@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class BuyNowCheckoutStrategy implements CheckoutStrategy {
 
-    private final InventoryDomainService inventoryDomainService;
+    private final InventoryQueryService inventoryQueryService;
     private final OrderAmountCalculator orderAmountCalculator;
 
     @Override
@@ -32,8 +32,8 @@ public class BuyNowCheckoutStrategy implements CheckoutStrategy {
     public CheckoutContext prepareForPreview(OrderPreviewRequest request, UUID userId) {
         validate(request.getBuyNowItem() != null ? request.getBuyNowItem().getVariantId() : null,
                 request.getBuyNowItem() != null ? request.getBuyNowItem().getQuantity() : null);
-        var inventory = inventoryDomainService.getInventory(request.getBuyNowItem().getVariantId());
-        inventoryDomainService.ensureAvailable(inventory, request.getBuyNowItem().getQuantity());
+        var inventory = inventoryQueryService.getInventorySummary(request.getBuyNowItem().getVariantId());
+        inventoryQueryService.validateAvailableStock(inventory.getVariant().getId(), request.getBuyNowItem().getQuantity());
         return CheckoutContext.builder()
                 .mode(OrderMode.BUY_NOW)
                 .variant(inventory.getVariant())
@@ -46,8 +46,8 @@ public class BuyNowCheckoutStrategy implements CheckoutStrategy {
     public CheckoutContext prepareForCreate(OrderCreateRequest request, UUID userId) {
         validate(request.getBuyNowItem() != null ? request.getBuyNowItem().getVariantId() : null,
                 request.getBuyNowItem() != null ? request.getBuyNowItem().getQuantity() : null);
-        var inventory = inventoryDomainService.getInventory(request.getBuyNowItem().getVariantId());
-        inventoryDomainService.reserve(inventory, request.getBuyNowItem().getQuantity());
+        var inventory = inventoryQueryService.getInventorySummary(request.getBuyNowItem().getVariantId());
+        inventoryQueryService.validateAvailableStock(inventory.getVariant().getId(), request.getBuyNowItem().getQuantity());
         return CheckoutContext.builder()
                 .mode(OrderMode.BUY_NOW)
                 .variant(inventory.getVariant())

@@ -1,11 +1,29 @@
 import { Pagination } from '../../../shared/types';
 
+export interface OrderItemInventoryAllocationDto {
+    id?: string;
+    orderItemId?: string;
+    order_item_id?: string;
+    lotId?: string;
+    lot_id?: string;
+    lotNumber?: string;
+    lot_number?: string;
+    expiryDate?: string;
+    expiry_date?: string;
+    reservedQuantity?: number;
+    reserved_quantity?: number;
+    exportedQuantity?: number;
+    exported_quantity?: number;
+    status?: string;
+}
+
 export interface OrderItemDto {
     id: string;
     productName: string;
     productSlug?: string;
     quantity: number;
     unitPrice: number;
+    allocations?: OrderItemInventoryAllocationDto[];
 }
 
 export interface OrderResponse {

@@ -1,19 +1,21 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Column, DataTable, Action } from '../../../shared/components/ui';
-import { InventoryVariantRow } from '../types/domain';
+import { Action, Column, DataTable } from '../../../shared/components/ui';
+import { InventorySummaryRow } from '../types/domain';
+import InventoryStatusBadge from './InventoryStatusBadge';
 
 interface InventoryTableProps {
-    inventories: InventoryVariantRow[];
+    inventories: InventorySummaryRow[];
     isLoading?: boolean;
+    onImport?: (row: InventorySummaryRow) => void;
 }
 
-const InventoryTable = React.memo(({ inventories, isLoading = false }: InventoryTableProps) => {
+const InventoryTable = React.memo(({ inventories, isLoading = false, onImport }: InventoryTableProps) => {
     const navigate = useNavigate();
     const rows = inventories.map((inv) => ({ ...inv }));
-    const formatMoney = (value?: number | null) => (value != null ? `${value.toLocaleString()} đ` : '-');
+    const formatMoney = (value?: number | null) => (value != null ? `${value.toLocaleString('vi-VN')} đ` : '-');
 
-    const columns: Column<any>[] = [
+    const columns: Column<InventorySummaryRow>[] = [
         {
             key: 'productName',
             header: 'Sản phẩm',
@@ -35,8 +37,8 @@ const InventoryTable = React.memo(({ inventories, isLoading = false }: Inventory
             )
         },
         {
-            key: 'variantName',
-            header: 'Phân loại',
+            key: 'specification',
+            header: 'Biến thể',
             render: (_v, row) => (
                 <div className="flex flex-col gap-0.5">
                     <span className="font-medium text-gray-800">{row.specification || row.unitType || 'Mặc định'}</span>
@@ -45,51 +47,61 @@ const InventoryTable = React.memo(({ inventories, isLoading = false }: Inventory
             )
         },
         {
-            key: 'averageImportCost',
-            header: 'Giá nhập trung bình',
-            render: (_v, row) => {
-                const importCost = row.averageImportCost;
-
-                return <span className="text-sm font-medium text-slate-800">{formatMoney(importCost)}</span>;
-            }
-        },
-        {
-            key: 'salePrice',
-            header: 'Giá bán',
-            render: (_v, row) => {
-                const salePrice = row.salePrice || 0;
-                return <span className="text-sm font-medium text-slate-800">{formatMoney(salePrice)}</span>;
-            }
-        },
-        {
             key: 'quantityOnHand',
             header: 'Tổng tồn',
-            render: (v: any) => (v != null ? v.toLocaleString() : '0'),
-            width: '120px',
-        },
-        {
-            key: 'quantityAvailable',
-            header: 'Có thể bán',
-            render: (v: any) => (v != null ? v.toLocaleString() : '0'),
+            render: (v) => formatQuantity(v),
             width: '120px',
         },
         {
             key: 'quantityReserved',
             header: 'Đang giữ',
-            render: (v: any) => (v != null ? v.toLocaleString() : '0'),
+            render: (v) => formatQuantity(v),
             width: '120px',
+        },
+        {
+            key: 'quantityAvailable',
+            header: 'Có thể bán',
+            render: (v) => <span className="text-emerald-700 font-semibold">{formatQuantity(v)}</span>,
+            width: '120px',
+        },
+        {
+            key: 'averageImportCost',
+            header: 'Giá nhập TB',
+            render: (_v, row) => <span className="text-sm font-medium text-slate-800">{formatMoney(row.averageImportCost)}</span>,
+        },
+        {
+            key: 'salePrice',
+            header: 'Giá bán',
+            render: (_v, row) => <span className="text-sm font-medium text-slate-800">{formatMoney(row.salePrice)}</span>,
+        },
+        {
+            key: 'stockStatus',
+            header: 'Trạng thái',
+            render: (value) => <InventoryStatusBadge status={value} />,
         },
     ];
 
-    const actions: Action<any>[] = [
+    const actions: Action<InventorySummaryRow>[] = [
         {
-            label: 'Chi tiết kho',
-            onClick: (row) => navigate(`/inventories/${row.variantId}/transactions`),
+            label: 'Xem lô',
+            onClick: (row) => navigate(`/inventories/${row.variantId}/lots`),
             className: 'px-3 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium text-sm',
+        },
+        {
+            label: 'Giao dịch',
+            onClick: (row) => navigate(`/inventories/${row.variantId}/transactions`),
+            className: 'px-3 py-1 rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium text-sm',
+        },
+        {
+            label: 'Nhập kho',
+            onClick: (row) => onImport?.(row),
+            className: 'px-3 py-1 rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-medium text-sm',
         },
     ];
 
     return <DataTable data={rows} columns={columns} actions={actions} isLoading={isLoading} />;
 });
+
+const formatQuantity = (value?: number | null) => (value != null ? value.toLocaleString('vi-VN') : '0');
 
 export default InventoryTable;

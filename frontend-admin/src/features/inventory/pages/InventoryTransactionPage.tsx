@@ -1,117 +1,111 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '../../../shared/components';
-import { useInventoryTransactions } from '../hooks/useInventoryTransactions';
+import { Pagination, SearchFilter } from '../../../shared/components/ui';
+import { ImportStockDialog, InventoryEmptyState, InventoryLotTable } from '../components';
 import { useInventoryActions } from '../hooks/useInventoryActions';
-import InventoryTransactionTable from '../components/InventoryTransactionTable';
-import { ImportStockDialog } from '../components';
-import { Pagination } from '../../../shared/components/ui';
+import { useInventoryLots } from '../hooks/useInventoryTransactions';
 
 const InventoryTransactionPage = () => {
-    const { id: variantId } = useParams<{ id: string }>();
-    const { data, transactions, isLoading, refresh, pagination } = useInventoryTransactions(variantId);
+    const { variantId, id } = useParams<{ variantId?: string; id?: string }>();
+    const resolvedVariantId = variantId || id;
+    const navigate = useNavigate();
+    const { summary, lots, isLoading, error, refresh, pagination, filters, setSearch, setStatus, clearFilters } = useInventoryLots(resolvedVariantId);
     const { importStock, isLoading: isImporting } = useInventoryActions();
     const [isImportOpen, setIsImportOpen] = useState(false);
-    const formatMoney = (value?: number | null) => (value != null ? `${value.toLocaleString('vi-VN')} đ` : 'N/A');
 
     const handlePageChange = (newPage: number) => {
-        refresh(newPage, pagination.size);
+        refresh(newPage, pagination.size, filters);
     };
 
-    const handleImportConfirm = async (variantId: string, quantity: number, unitCost: number, note?: string) => {
-        if (variantId == null || variantId === '') return;
-        try {
-            await importStock(variantId, quantity, unitCost, note);
-            setIsImportOpen(false);
-            refresh(pagination.page, pagination.size);
-        } catch (err) {
-            console.error('Import failed:', err);
-        }
+    const handleImportConfirm = async (
+        selectedVariantId: string,
+        lotNumber: string,
+        expiryDate: string,
+        quantity: number,
+        unitCost: number,
+        note?: string
+    ) => {
+        await importStock(selectedVariantId, lotNumber, expiryDate, quantity, unitCost, note);
+        setIsImportOpen(false);
+        refresh(pagination.page, pagination.size, filters);
     };
+
+    if (error) {
+        return <div className="text-red-600 p-8 text-center bg-red-50 rounded-xl border border-red-100">{error.message}</div>;
+    }
 
     return (
         <div className="space-y-6">
             <PageHeader
-                title={
-                    <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                            <span className="text-gray-400 font-normal">Lịch sử giao dịch biến thể:</span>
-                            <span className="font-bold text-gray-900">{data?.productWebName || data?.productName || '...'}</span>
-                        </div>
-                        {data && (
-                            <div className="flex flex-wrap items-center gap-2 group">
-                                <span className="text-xs font-medium text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
-                                    {data.specification || data.unitType || 'Biến thể'}
-                                </span>
-                                <span className="text-xs font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 italic transition-colors group-hover:text-slate-600 group-hover:bg-white truncate max-w-[300px]" title={data.variantSku || '-'}>
-                                    {data.variantSku || '-'}
-                                </span>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigator.clipboard.writeText(data.variantSku || '');
-                                    }}
-                                    className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-emerald-600 transition-colors opacity-0 group-hover:opacity-100"
-                                    title="Copy mã biến thể"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                    </svg>
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                }
-                description="Lưu lại toàn bộ lịch sử nhập, xuất và giữ hàng của biến thể đang chọn"
+                title={summary ? (summary.productWebName || summary.productName) : 'Lô hàng'}
+                description="Xem tồn kho theo lô của biến thể đã chọn, sắp xếp FEFO và theo dõi lượng đang giữ."
                 actionLabel="Nhập kho"
                 onAction={() => setIsImportOpen(true)}
-                onBack={() => window.history.back()}
+                onBack={() => navigate('/inventories/summary')}
             />
 
-            {data && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                        <p className="text-sm text-gray-500 mb-1">Tổng tồn kho</p>
-                        <p className="text-2xl font-bold text-gray-900">{data.quantityOnHand}</p>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                        <p className="text-sm text-gray-500 mb-1">Có sẵn</p>
-                        <p className="text-2xl font-bold text-emerald-600">{data.quantityAvailable}</p>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                        <p className="text-sm text-gray-500 mb-1">Đang giữ</p>
-                        <p className="text-2xl font-bold text-orange-600">{data.quantityReserved}</p>
-                    </div>
+            {summary && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <SummaryCard label="Biến thể" value={summary.specification || summary.unitType || 'Mặc định'} helper={`SKU: ${summary.productSku || '-'}`} />
+                    <SummaryCard label="Tổng tồn" value={summary.quantityOnHand.toLocaleString('vi-VN')} />
+                    <SummaryCard label="Đang giữ" value={summary.quantityReserved.toLocaleString('vi-VN')} />
+                    <SummaryCard label="Có thể bán" value={summary.quantityAvailable.toLocaleString('vi-VN')} valueClassName="text-emerald-600" />
                 </div>
             )}
 
-            {data && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                        <p className="text-sm text-gray-500 mb-1">Giá bán hiện tại</p>
-                        <p className="text-2xl font-bold text-blue-700">{formatMoney(data.salePrice)}</p>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                        <p className="text-sm text-gray-500 mb-1">Giá nhập trung bình</p>
-                        <p className="text-2xl font-bold text-emerald-700">{formatMoney(data.averageImportCost)}</p>
-                    </div>
-                </div>
-            )}
+            <SearchFilter
+                search={filters.search}
+                onSearchChange={setSearch}
+                searchPlaceholder="Tìm số lô hoặc SKU..."
+                onClear={clearFilters}
+                accentColor="emerald"
+                filters={[
+                    {
+                        key: 'status',
+                        label: 'Trạng thái lô',
+                        value: filters.status,
+                        onChange: setStatus,
+                        options: [
+                            { label: 'Đang bán', value: 'ACTIVE' },
+                            { label: 'Sắp hết hạn', value: 'EXPIRING' },
+                            { label: 'Hết hạn', value: 'EXPIRED' },
+                            { label: 'Đã chặn', value: 'BLOCKED' },
+                            { label: 'Hết tồn', value: 'DEPLETED' },
+                        ],
+                    },
+                ]}
+            />
 
-            <div className="space-y-4">
-                <InventoryTransactionTable transactions={transactions} isLoading={isLoading} />
-                <Pagination
-                    currentPage={pagination.page}
-                    totalPages={pagination.totalPages}
-                    totalElements={pagination.totalElements}
-                    pageSize={pagination.size}
-                    onPageChange={handlePageChange}
+            {!resolvedVariantId && lots.length === 0 && !isLoading ? (
+                <InventoryEmptyState
+                    title="Chưa chọn biến thể"
+                    description="Màn này hiển thị lô hàng theo từng product variant. Hãy vào Tổng tồn kho và chọn `Xem lô` từ biến thể cần quản lý."
+                    ctaLabel="Về tổng tồn kho"
+                    ctaTo="/inventories/summary"
                 />
-            </div>
+            ) : (
+                <>
+                    <InventoryLotTable
+                        lots={lots}
+                        isLoading={isLoading}
+                        onViewTransactions={(lot) => navigate(`/inventories/${lot.variantId}/transactions?lotId=${lot.id}`)}
+                    />
+                    {!isLoading && (
+                        <Pagination
+                            currentPage={pagination.page}
+                            totalPages={pagination.totalPages}
+                            totalElements={pagination.totalElements}
+                            pageSize={pagination.size}
+                            onPageChange={handlePageChange}
+                        />
+                    )}
+                </>
+            )}
 
             <ImportStockDialog
                 isOpen={isImportOpen}
-                inventory={data}
+                inventory={summary ?? null}
                 onClose={() => setIsImportOpen(false)}
                 onConfirm={handleImportConfirm}
                 isLoading={isImporting}
@@ -119,5 +113,23 @@ const InventoryTransactionPage = () => {
         </div>
     );
 };
+
+const SummaryCard = ({
+    label,
+    value,
+    helper,
+    valueClassName = 'text-slate-900',
+}: {
+    label: string;
+    value: string;
+    helper?: string;
+    valueClassName?: string;
+}) => (
+    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <p className="text-sm text-gray-500 mb-1">{label}</p>
+        <p className={`text-xl font-bold ${valueClassName}`}>{value}</p>
+        {helper && <p className="text-xs text-slate-500 mt-1">{helper}</p>}
+    </div>
+);
 
 export default InventoryTransactionPage;

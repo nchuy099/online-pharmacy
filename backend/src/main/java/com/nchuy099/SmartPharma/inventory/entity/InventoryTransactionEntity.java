@@ -3,6 +3,7 @@ package com.nchuy099.SmartPharma.inventory.entity;
 import java.math.BigDecimal;
 
 import com.nchuy099.SmartPharma.common.entity.AbstractEntity;
+import com.nchuy099.SmartPharma.product.entity.ProductVariantEntity;
 import com.nchuy099.SmartPharma.inventory.domain.enums.TransactionType;
 
 import jakarta.persistence.Column;
@@ -35,7 +36,15 @@ public class InventoryTransactionEntity extends AbstractEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "inventory_id", nullable = false)
-    InventoryEntity inventory;
+    InventorySummaryEntity inventorySummary;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id")
+    ProductVariantEntity variant;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lot_id")
+    InventoryLotEntity lot;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

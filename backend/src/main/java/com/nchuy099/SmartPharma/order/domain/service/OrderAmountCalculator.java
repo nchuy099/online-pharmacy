@@ -73,7 +73,7 @@ public class OrderAmountCalculator {
         }
 
         BigDecimal cost = inventoryTransactionRepository
-                .findTopByInventoryVariantIdAndTypeOrderByCreatedAtDesc(variantId, TransactionType.IMPORT)
+                .findTopByVariantIdAndTypeOrderByCreatedAtDesc(variantId, TransactionType.IMPORT)
                 .map(t -> t.getUnitCost() != null ? t.getUnitCost() : BigDecimal.ZERO)
                 .orElse(BigDecimal.ZERO);
 

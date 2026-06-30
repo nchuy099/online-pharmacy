@@ -28,6 +28,8 @@ public class TransactionResponse {
     String specification;
     BigDecimal salePrice;
     BigDecimal averageImportCost;
+    UUID lotId;
+    String lotNumber;
     String type;
     Integer quantity;
     BigDecimal unitCost;

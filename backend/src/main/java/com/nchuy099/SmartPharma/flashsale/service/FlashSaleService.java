@@ -51,8 +51,8 @@ import com.nchuy099.SmartPharma.flashsale.entity.FlashSaleReservationEntity;
 import com.nchuy099.SmartPharma.flashsale.repository.FlashSaleCampaignRepository;
 import com.nchuy099.SmartPharma.flashsale.repository.FlashSaleItemRepository;
 import com.nchuy099.SmartPharma.flashsale.repository.FlashSaleReservationRepository;
-import com.nchuy099.SmartPharma.inventory.entity.InventoryEntity;
-import com.nchuy099.SmartPharma.inventory.repository.InventoryRepository;
+import com.nchuy099.SmartPharma.inventory.entity.InventorySummaryEntity;
+import com.nchuy099.SmartPharma.inventory.repository.InventorySummaryRepository;
 import com.nchuy099.SmartPharma.product.entity.ProductVariantEntity;
 import com.nchuy099.SmartPharma.product.repository.ProductVariantRepository;
 import com.nchuy099.SmartPharma.order.domain.entity.OrderEntity;
@@ -90,7 +90,7 @@ public class FlashSaleService {
     private final FlashSaleItemRepository itemRepository;
     private final FlashSaleReservationRepository reservationRepository;
     private final ProductVariantRepository productVariantRepository;
-    private final InventoryRepository inventoryRepository;
+    private final InventorySummaryRepository inventoryRepository;
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final SecurityUtils securityUtils;
@@ -318,12 +318,7 @@ public class FlashSaleService {
         }
 
         for (FlashSaleItemEntity item : items) {
-            FlashSaleItemValidation validation = validateFlashSaleItem(item.getVariant().getId(), item.getSaleStock(), item.getFlashPrice(), item.getPerUserLimit());
-            InventoryEntity inventory = validation.inventory();
-            int reserved = inventoryRepository.reserveQuantity(inventory.getId(), item.getSaleStock());
-            if (reserved <= 0) {
-                throw new AppException(ErrorCode.CONFLICT, "Unable to reserve inventory for flash sale");
-            }
+            validateFlashSaleItem(item.getVariant().getId(), item.getSaleStock(), item.getFlashPrice(), item.getPerUserLimit());
             item.setStatus(FlashSaleItemStatus.ACTIVE);
             itemRepository.save(item);
             preloadRedis(item);
@@ -347,12 +342,6 @@ public class FlashSaleService {
         campaign.setStatus(FlashSaleCampaignStatus.CANCELLED);
         List<FlashSaleItemEntity> items = itemRepository.findByCampaignId(campaignId);
         for (FlashSaleItemEntity item : items) {
-            InventoryEntity inventory = inventoryRepository.findByVariant_Id(item.getVariant().getId())
-                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Inventory not found"));
-            int released = inventoryRepository.releaseReservation(inventory.getId(), item.getSaleStock());
-            if (released <= 0) {
-                throw new AppException(ErrorCode.CONFLICT, "Unable to release inventory for cancelled flash sale");
-            }
             item.setStatus(FlashSaleItemStatus.ENDED);
             restoreRedisItemStock(item);
         }
@@ -641,8 +630,8 @@ public class FlashSaleService {
             throw new AppException(ErrorCode.CONFLICT, "Product is inactive");
         }
 
-        InventoryEntity inventory = inventoryRepository.findByVariant_Id(variantId)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Inventory not found"));
+        InventorySummaryEntity inventory = inventoryRepository.findByVariantId(variantId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Inventory summary not found"));
         int availableStock = inventory.getQuantityAvailable() != null ? inventory.getQuantityAvailable() : 0;
         if (availableStock <= 0) {
             throw new AppException(ErrorCode.CONFLICT, "Variant is out of stock");
@@ -1134,7 +1123,7 @@ public class FlashSaleService {
     private record ClaimResult(String status, Integer remainingStock, String message) {
     }
 
-    private record FlashSaleItemValidation(ProductVariantEntity variant, InventoryEntity inventory) {
+    private record FlashSaleItemValidation(ProductVariantEntity variant, InventorySummaryEntity inventory) {
     }
 
     private record CachedFlashSaleCampaign(

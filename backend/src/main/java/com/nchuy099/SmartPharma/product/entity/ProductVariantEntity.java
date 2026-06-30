@@ -3,7 +3,7 @@ package com.nchuy099.SmartPharma.product.entity;
 import java.math.BigDecimal;
 
 import com.nchuy099.SmartPharma.common.entity.AbstractEntity;
-import com.nchuy099.SmartPharma.inventory.entity.InventoryEntity;
+import com.nchuy099.SmartPharma.inventory.entity.InventorySummaryEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -63,7 +63,15 @@ public class ProductVariantEntity extends AbstractEntity {
     Boolean isActive = true;
 
     @OneToOne(mappedBy = "variant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    InventoryEntity inventory;
+    InventorySummaryEntity inventory;
+
+    public InventorySummaryEntity getInventorySummary() {
+        return inventory;
+    }
+
+    public void setInventorySummary(InventorySummaryEntity inventory) {
+        this.inventory = inventory;
+    }
 
     public String getUnit() {
         return unitType;

@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useOrderDetails } from '../hooks/useOrderDetails';
 import OrderCard from '../components/OrderCard';
+import OrderInventoryAllocationPanel from '../components/OrderInventoryAllocationPanel';
 import PaymentCard from '../components/PaymentCard';
 import { PageHeader } from '../../../shared/components';
 import { Modal } from '../../../shared/components/ui';
@@ -150,6 +151,11 @@ const OrderDetailsPage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                     <OrderCard order={order} />
+                    <OrderInventoryAllocationPanel
+                        items={order.items}
+                        allocations={(order.items || []).flatMap((item) => item.allocations || [])}
+                        isLoading={false}
+                    />
                     {/*
                     {order.shipment && (
                         <ShipmentCard

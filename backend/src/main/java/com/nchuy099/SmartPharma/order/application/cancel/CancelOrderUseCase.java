@@ -1,5 +1,6 @@
 package com.nchuy099.SmartPharma.order.application.cancel;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -8,8 +9,11 @@ import com.nchuy099.SmartPharma.common.exception.AppException;
 import com.nchuy099.SmartPharma.common.exception.ErrorCode;
 import com.nchuy099.SmartPharma.common.utils.SecurityUtils;
 import com.nchuy099.SmartPharma.flashsale.service.FlashSaleService;
-import com.nchuy099.SmartPharma.inventory.service.InventoryDomainService;
+import com.nchuy099.SmartPharma.inventory.domain.enums.InventoryReferenceType;
+import com.nchuy099.SmartPharma.inventory.model.ReservationAllocation;
+import com.nchuy099.SmartPharma.inventory.service.InventoryCommandService;
 import com.nchuy099.SmartPharma.order.domain.entity.OrderEntity;
+import com.nchuy099.SmartPharma.order.domain.repository.OrderItemInventoryAllocationRepository;
 import com.nchuy099.SmartPharma.order.domain.policy.OrderCancelPolicy;
 import com.nchuy099.SmartPharma.order.domain.policy.OrderStatusPolicy;
 import com.nchuy099.SmartPharma.order.domain.repository.OrderRepository;
@@ -29,7 +33,8 @@ public class CancelOrderUseCase {
     private final OrderRepository orderRepository;
     private final OrderCancelPolicy orderCancelPolicy;
     private final OrderStatusPolicy orderStatusPolicy;
-    private final InventoryDomainService inventoryDomainService;
+    private final InventoryCommandService inventoryCommandService;
+    private final OrderItemInventoryAllocationRepository orderItemInventoryAllocationRepository;
     private final FlashSaleService flashSaleService;
     private final OrderEventPublisher orderEventPublisher;
 
@@ -45,8 +50,22 @@ public class CancelOrderUseCase {
         order.setCancelReason(request.getReason());
 
         order.getItems().forEach(item -> {
-            var inventory = inventoryDomainService.getInventory(item.getVariant().getId().toString());
-            inventoryDomainService.release(inventory, item.getQuantity());
+            List<ReservationAllocation> allocations = orderItemInventoryAllocationRepository.findByOrderItemId(item.getId())
+                    .stream()
+                    .map(allocation -> new ReservationAllocation(
+                            allocation.getLot().getId(),
+                            allocation.getRemainingReservedQuantity(),
+                            allocation.getLot().getUnitCost()))
+                    .filter(allocation -> allocation.quantity() > 0)
+                    .toList();
+            if (!allocations.isEmpty()) {
+                inventoryCommandService.releaseAllocations(
+                        item.getVariant().getId(),
+                        allocations,
+                        InventoryReferenceType.ORDER,
+                        order.getId().toString(),
+                        userId);
+            }
         });
 
         if (order.getFlashSaleReservationId() != null) {

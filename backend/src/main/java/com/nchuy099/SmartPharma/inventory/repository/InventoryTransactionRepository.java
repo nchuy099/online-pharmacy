@@ -20,20 +20,20 @@ import com.nchuy099.SmartPharma.inventory.domain.enums.TransactionType;
 public interface InventoryTransactionRepository extends JpaRepository<InventoryTransactionEntity, UUID> {
     @Query(value = """
             SELECT t FROM InventoryTransactionEntity t
-            JOIN FETCH t.inventory i
+            JOIN FETCH t.inventorySummary i
             JOIN FETCH i.variant v
             JOIN FETCH v.product p
             WHERE i.id = :inventoryId
             """, countQuery = """
             SELECT count(t) FROM InventoryTransactionEntity t
-            JOIN t.inventory i
+            JOIN t.inventorySummary i
             JOIN i.variant v
             JOIN v.product p
             WHERE i.id = :inventoryId
             """)
-    Page<InventoryTransactionEntity> findByInventoryId(@Param("inventoryId") UUID inventoryId, Pageable pageable);
+    Page<InventoryTransactionEntity> findByInventorySummaryId(@Param("inventoryId") UUID inventoryId, Pageable pageable);
 
-    Optional<InventoryTransactionEntity> findTopByInventoryVariantIdAndTypeOrderByCreatedAtDesc(UUID variantId, TransactionType type);
+    Optional<InventoryTransactionEntity> findTopByVariantIdAndTypeOrderByCreatedAtDesc(UUID variantId, TransactionType type);
 
     interface AverageImportCostProjection {
         UUID getVariantId();
@@ -48,8 +48,7 @@ public interface InventoryTransactionRepository extends JpaRepository<InventoryT
                        0
                    ) as averageImportCost
             FROM InventoryTransactionEntity t
-            JOIN t.inventory i
-            JOIN i.variant v
+            JOIN t.variant v
             WHERE t.type = com.nchuy099.SmartPharma.inventory.domain.enums.TransactionType.IMPORT
               AND v.id IN :variantIds
             GROUP BY v.id
@@ -59,8 +58,7 @@ public interface InventoryTransactionRepository extends JpaRepository<InventoryT
     @Query("""
             SELECT SUM(COALESCE(t.unitCost, 0) * t.quantity) / NULLIF(SUM(t.quantity), 0)
             FROM InventoryTransactionEntity t
-            JOIN t.inventory i
-            JOIN i.variant v
+            JOIN t.variant v
             WHERE t.type = com.nchuy099.SmartPharma.inventory.domain.enums.TransactionType.IMPORT
               AND v.id = :variantId
             """)
@@ -68,14 +66,12 @@ public interface InventoryTransactionRepository extends JpaRepository<InventoryT
 
     @Query(value = """
             SELECT t FROM InventoryTransactionEntity t
-            JOIN FETCH t.inventory i
-            JOIN FETCH i.variant v
+            JOIN FETCH t.variant v
             JOIN FETCH v.product p
             WHERE p.id = :productId
             """, countQuery = """
             SELECT count(t) FROM InventoryTransactionEntity t
-            JOIN t.inventory i
-            JOIN i.variant v
+            JOIN t.variant v
             JOIN v.product p
             WHERE p.id = :productId
             """)

@@ -4,8 +4,8 @@ import { PageHeader } from '../../../shared/components';
 const InventoryHeader = React.memo(() => {
     return (
         <PageHeader
-            title="Quản lý kho hàng"
-            description="Danh sách tồn kho sản phẩm"
+            title="Tổng tồn kho"
+            description="Xem tồn tổng theo product variant và drill-down xuống từng lô hàng"
         />
     );
 });

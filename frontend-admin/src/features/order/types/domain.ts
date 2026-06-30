@@ -2,12 +2,24 @@ import { Pagination } from '../../../shared/types';
 
 export type OrderStatus = 'PENDING' | 'PENDING_PAYMENT' | 'PROCESSING' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED';
 
+export interface OrderItemInventoryAllocation {
+    id: string;
+    orderItemId: string;
+    lotId: string;
+    lotNumber: string;
+    expiryDate?: string;
+    reservedQuantity: number;
+    exportedQuantity: number;
+    status?: string;
+}
+
 export interface OrderItem {
     id: string;
     productName: string;
     productSlug?: string;
     quantity: number;
     unitPrice: number;
+    allocations?: OrderItemInventoryAllocation[];
 }
 
 export interface PaymentInfo {
@@ -30,14 +42,14 @@ export interface Order {
     id: string;
     orderCode: string;
     paymentMethod: string;
-    items?: OrderItem[]; // Optional in list
+    items?: OrderItem[];
     finalAmount: number;
     shippingFee?: number;
     ghnServiceId?: number;
     expectedDeliveryTime?: number;
     note?: string;
     status: OrderStatus;
-    totalItems: number; // Added
+    totalItems: number;
 }
 
 export interface ShipmentLog {

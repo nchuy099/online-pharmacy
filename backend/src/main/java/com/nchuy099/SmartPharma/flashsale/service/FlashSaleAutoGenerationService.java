@@ -30,8 +30,8 @@ import com.nchuy099.SmartPharma.flashsale.dto.request.GenerateRandomFlashSaleCam
 import com.nchuy099.SmartPharma.flashsale.dto.response.FlashSaleCampaignResponse;
 import com.nchuy099.SmartPharma.flashsale.entity.FlashSaleCampaignEntity;
 import com.nchuy099.SmartPharma.flashsale.repository.FlashSaleCampaignRepository;
-import com.nchuy099.SmartPharma.inventory.entity.InventoryEntity;
-import com.nchuy099.SmartPharma.inventory.repository.InventoryRepository;
+import com.nchuy099.SmartPharma.inventory.entity.InventorySummaryEntity;
+import com.nchuy099.SmartPharma.inventory.repository.InventorySummaryRepository;
 import com.nchuy099.SmartPharma.product.entity.ProductVariantEntity;
 import com.nchuy099.SmartPharma.product.repository.ProductVariantRepository;
 
@@ -48,7 +48,7 @@ public class FlashSaleAutoGenerationService {
     private final FlashSaleCampaignRepository campaignRepository;
     private final FlashSaleService flashSaleService;
     private final ProductVariantRepository productVariantRepository;
-    private final InventoryRepository inventoryRepository;
+    private final InventorySummaryRepository inventoryRepository;
 
     @Value("${flash-sale.auto-generation.daily-item-count:10}")
     private int dailyItemCount;
@@ -87,7 +87,7 @@ public class FlashSaleAutoGenerationService {
             log.warn("Only {} eligible variants found for auto flash sale on {} while target is {}", candidateVariantIds.size(), date, dailyItemCount);
         }
 
-        Map<UUID, InventoryEntity> inventoryByVariantId = inventoryRepository.findAllByVariantIds(candidateVariantIds)
+        Map<UUID, InventorySummaryEntity> inventoryByVariantId = inventoryRepository.findAllByVariantIds(candidateVariantIds)
                 .stream()
                 .collect(Collectors.toMap(inv -> inv.getVariant().getId(), inv -> inv));
 
@@ -123,7 +123,7 @@ public class FlashSaleAutoGenerationService {
             throw new AppException(ErrorCode.CONFLICT, "No eligible variants found for random flash sale draft");
         }
 
-        Map<UUID, InventoryEntity> inventoryByVariantId = inventoryRepository.findAllByVariantIds(candidateVariantIds)
+        Map<UUID, InventorySummaryEntity> inventoryByVariantId = inventoryRepository.findAllByVariantIds(candidateVariantIds)
                 .stream()
                 .collect(Collectors.toMap(inv -> inv.getVariant().getId(), inv -> inv));
 
@@ -148,7 +148,7 @@ public class FlashSaleAutoGenerationService {
             LocalDate date,
             ZoneId zoneId,
             List<UUID> candidateVariantIds,
-        Map<UUID, InventoryEntity> inventoryByVariantId) {
+        Map<UUID, InventorySummaryEntity> inventoryByVariantId) {
         return buildCampaignRequest(
                 date,
                 zoneId,
@@ -166,7 +166,7 @@ public class FlashSaleAutoGenerationService {
             LocalDate date,
             ZoneId zoneId,
             List<UUID> candidateVariantIds,
-            Map<UUID, InventoryEntity> inventoryByVariantId,
+            Map<UUID, InventorySummaryEntity> inventoryByVariantId,
             int itemCountLimit,
             BigDecimal discountPercent,
             int saleStockPerItem,
@@ -191,7 +191,7 @@ public class FlashSaleAutoGenerationService {
 
     private List<CreateFlashSaleCampaignRequest.ItemRequest> buildCampaignItems(
             List<UUID> candidateVariantIds,
-            Map<UUID, InventoryEntity> inventoryByVariantId,
+            Map<UUID, InventorySummaryEntity> inventoryByVariantId,
             int itemCountLimit,
             BigDecimal discountPercent,
             int saleStockPerItem,
@@ -204,7 +204,7 @@ public class FlashSaleAutoGenerationService {
                 continue;
             }
 
-            InventoryEntity inventory = inventoryByVariantId.get(variantId);
+            InventorySummaryEntity inventory = inventoryByVariantId.get(variantId);
             if (inventory == null) {
                 continue;
             }

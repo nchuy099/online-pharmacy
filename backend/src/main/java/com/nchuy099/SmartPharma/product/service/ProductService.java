@@ -24,8 +24,8 @@ import com.nchuy099.SmartPharma.media.domain.enums.UploadType;
 import com.nchuy099.SmartPharma.common.exception.AppException;
 import com.nchuy099.SmartPharma.common.exception.ErrorCode;
 import com.nchuy099.SmartPharma.common.utils.StringUtils;
-import com.nchuy099.SmartPharma.inventory.service.InventoryDomainService;
 import com.nchuy099.SmartPharma.flashsale.service.FlashSaleService;
+import com.nchuy099.SmartPharma.inventory.repository.InventorySummaryRepository;
 import com.nchuy099.SmartPharma.media.service.MediaService;
 import com.nchuy099.SmartPharma.product.dto.request.CreateProductRequest;
 import com.nchuy099.SmartPharma.product.dto.request.CreateProductVariantRequest;
@@ -63,7 +63,7 @@ public class ProductService {
     private final ProductVariantRepository productVariantRepository;
     private final CategoryRepository categoryRepository;
     private final ReviewRepository reviewRepository;
-    private final InventoryDomainService inventoryDomainService;
+    private final InventorySummaryRepository inventorySummaryRepository;
     private final FlashSaleService flashSaleService;
     private final MediaService mediaService;
 
@@ -147,8 +147,7 @@ public class ProductService {
 
         productRepository.save(productEntity);
         if (productEntity.getVariants() != null) {
-            productEntity.getVariants().forEach(variant ->
-                    inventoryDomainService.getInventory(variant.getId().toString()));
+            productEntity.getVariants().forEach(variant -> ensureInventorySummary(variant.getId()));
         }
 
         return mapToProductResponse(
@@ -250,7 +249,7 @@ public class ProductService {
         List<ProductEntity> saved = productRepository.saveAll(toSave);
         for (ProductEntity product : saved) {
             if (product.getVariants() != null) {
-                product.getVariants().forEach(variant -> inventoryDomainService.getInventory(variant.getId().toString()));
+                product.getVariants().forEach(variant -> ensureInventorySummary(variant.getId()));
             }
         }
 
@@ -344,8 +343,7 @@ public class ProductService {
 
         productRepository.save(productEntity);
         if (productEntity.getVariants() != null) {
-            productEntity.getVariants().forEach(variant ->
-                    inventoryDomainService.getInventory(variant.getId().toString()));
+            productEntity.getVariants().forEach(variant -> ensureInventorySummary(variant.getId()));
         }
         return mapToProductResponse(
                 productEntity,
@@ -424,7 +422,7 @@ public class ProductService {
         ensureOneDefaultActiveVariant(productEntity.getVariants());
 
         ProductVariantEntity saved = productVariantRepository.save(variant);
-        inventoryDomainService.getInventory(saved.getId().toString());
+        ensureInventorySummary(saved.getId());
         return mapToVariantResponse(saved);
     }
 
@@ -954,6 +952,12 @@ public class ProductService {
                 .filter(v -> Boolean.TRUE.equals(v.getIsActive()))
                 .findFirst()
                 .ifPresent(v -> v.setIsDefault(true));
+    }
+
+    private void ensureInventorySummary(UUID variantId) {
+        if (inventorySummaryRepository.findByVariantId(variantId).isEmpty()) {
+            inventorySummaryRepository.insertDefaultSummary(variantId);
+        }
     }
 
     private List<ProductImageEntity> buildProductImages(String primaryImage, List<String> secondaryImages, ProductEntity product) {

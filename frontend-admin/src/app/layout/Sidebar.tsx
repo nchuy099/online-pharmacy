@@ -39,6 +39,7 @@ const Sidebar = ({ isOpen = false, onClose, isCollapsed = false, onToggleCollaps
     const location = useLocation();
     const isRbac = location.pathname.startsWith('/rbac');
     const [rbacOpen, setRbacOpen] = useState(isRbac);
+    const isInventory = location.pathname.startsWith('/inventories');
 
     const menuItemsTop: MenuItem[] = [
         { path: "/analytics", icon: FaChartBar, label: "Thống kê", active: location.pathname === "/analytics", permissions: ["READ_ANALYTICS"] },
@@ -49,7 +50,6 @@ const Sidebar = ({ isOpen = false, onClose, isCollapsed = false, onToggleCollaps
     const menuItemsBottom: MenuItem[] = [
         { path: "/categories", icon: FaPills, label: "Phân loại", active: location.pathname === "/categories", permissions: ["READ_CATEGORY"] },
         { path: "/products", icon: FaPills, label: "Sản phẩm", active: location.pathname === "/products", permissions: ["READ_PRODUCT"] },
-        { path: "/inventories", icon: FaWarehouse, label: "Kho", active: location.pathname === "/inventories", permissions: ["READ_INVENTORY"] },
         { path: "/flash-sales", icon: FaBolt, label: "Flash sale", active: location.pathname.startsWith("/flash-sales"), permissions: ["MANAGE_FLASH_SALE"] },
         { path: "/orders", icon: FaShoppingCart, label: "Đơn hàng", active: location.pathname === "/orders", permissions: ["READ_ORDER"] },
     ];
@@ -159,6 +159,18 @@ const Sidebar = ({ isOpen = false, onClose, isCollapsed = false, onToggleCollaps
                                         ))}
                                     </ul>
                                 )}
+                            </li>
+                        )}
+                        {canAccess(["READ_INVENTORY"]) && (
+                            <li>
+                                <Link
+                                    to="/inventories/summary"
+                                    onClick={handleLinkClick}
+                                    className={`flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 text-sm ${isInventory ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200/50' : 'text-slate-500 hover:bg-gray-50 hover:text-emerald-600'}`}
+                                >
+                                    <FaWarehouse className="w-4 h-4" />
+                                    <span className="ml-3.5 font-semibold">Kho hàng</span>
+                                </Link>
                             </li>
                         )}
                         {menuItemsBottom.filter(item => canAccess(item.permissions)).map((item) => (
@@ -299,6 +311,32 @@ const Sidebar = ({ isOpen = false, onClose, isCollapsed = false, onToggleCollaps
                                         ))}
                                     </ul>
                                 )}
+                            </li>
+                        )}
+
+                        {canAccess(["READ_INVENTORY"]) && !isCollapsed && (
+                            <li>
+                                <Link
+                                    to="/inventories/summary"
+                                    title="Kho hàng"
+                                    className={`flex items-center rounded-xl transition-all duration-200 group relative px-4 py-2.5 ${isInventory ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200/50' : 'text-slate-500 hover:bg-gray-50 hover:text-emerald-600'}`}
+                                >
+                                    <FaWarehouse className="w-4 h-4" />
+                                    <span className="ml-3.5 font-semibold text-sm">Kho hàng</span>
+                                </Link>
+                            </li>
+                        )}
+
+                        {canAccess(["READ_INVENTORY"]) && isCollapsed && (
+                            <li>
+                                <Link
+                                    to="/inventories/summary"
+                                    title="Kho hàng"
+                                    className={`flex items-center justify-center p-3 rounded-xl transition-all duration-200 group relative ${isInventory ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200/50' : 'text-slate-500 hover:bg-gray-50 hover:text-emerald-600'}`}
+                                >
+                                    <FaWarehouse className="w-5 h-5" />
+                                    {isInventory && <div className="absolute left-0 w-1 h-6 bg-white rounded-r-full" />}
+                                </Link>
                             </li>
                         )}
 
