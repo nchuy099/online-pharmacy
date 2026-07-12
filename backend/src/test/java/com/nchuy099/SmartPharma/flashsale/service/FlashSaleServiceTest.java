@@ -49,8 +49,8 @@ import com.nchuy099.SmartPharma.flashsale.entity.FlashSaleItemEntity;
 import com.nchuy099.SmartPharma.flashsale.repository.FlashSaleCampaignRepository;
 import com.nchuy099.SmartPharma.flashsale.repository.FlashSaleItemRepository;
 import com.nchuy099.SmartPharma.flashsale.repository.FlashSaleReservationRepository;
-import com.nchuy099.SmartPharma.inventory.entity.InventoryEntity;
-import com.nchuy099.SmartPharma.inventory.repository.InventoryRepository;
+import com.nchuy099.SmartPharma.inventory.entity.InventorySummaryEntity;
+import com.nchuy099.SmartPharma.inventory.repository.InventorySummaryRepository;
 import com.nchuy099.SmartPharma.order.domain.repository.OrderRepository;
 import com.nchuy099.SmartPharma.product.entity.ProductEntity;
 import com.nchuy099.SmartPharma.product.entity.ProductVariantEntity;
@@ -66,7 +66,7 @@ class FlashSaleServiceTest {
     private FlashSaleItemRepository itemRepository;
     private FlashSaleReservationRepository reservationRepository;
     private ProductVariantRepository productVariantRepository;
-    private InventoryRepository inventoryRepository;
+    private InventorySummaryRepository inventoryRepository;
     private OrderRepository orderRepository;
     private UserRepository userRepository;
     private SecurityUtils securityUtils;
@@ -85,7 +85,7 @@ class FlashSaleServiceTest {
         itemRepository = mock(FlashSaleItemRepository.class);
         reservationRepository = mock(FlashSaleReservationRepository.class);
         productVariantRepository = mock(ProductVariantRepository.class);
-        inventoryRepository = mock(InventoryRepository.class);
+        inventoryRepository = mock(InventorySummaryRepository.class);
         orderRepository = mock(OrderRepository.class);
         userRepository = mock(UserRepository.class);
         securityUtils = mock(SecurityUtils.class);
@@ -212,7 +212,7 @@ class FlashSaleServiceTest {
         FlashSaleItemEntity item = item(campaign, BigDecimal.valueOf(55000), 5);
         item.setStatus(FlashSaleItemStatus.DRAFT);
 
-        InventoryEntity inventory = InventoryEntity.builder()
+        InventorySummaryEntity inventory = InventorySummaryEntity.builder()
                 .variant(item.getVariant())
                 .quantityOnHand(100)
                 .quantityReserved(0)
@@ -229,8 +229,7 @@ class FlashSaleServiceTest {
         when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
         when(itemRepository.findByCampaignId(campaign.getId())).thenReturn(List.of(item));
         when(productVariantRepository.findByIdWithProduct(item.getVariant().getId())).thenReturn(Optional.of(item.getVariant()));
-        when(inventoryRepository.reserveQuantity(inventory.getId(), item.getSaleStock())).thenReturn(1);
-        when(inventoryRepository.findByVariant_Id(item.getVariant().getId())).thenReturn(Optional.of(inventory));
+        when(inventoryRepository.findByVariantId(item.getVariant().getId())).thenReturn(Optional.of(inventory));
         when(campaignRepository.save(any(FlashSaleCampaignEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(itemRepository.save(any(FlashSaleItemEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -15,15 +14,16 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 import com.nchuy099.SmartPharma.inventory.dto.response.InventoryPageResponse;
 import com.nchuy099.SmartPharma.inventory.dto.response.TransactionPageResponse;
-import com.nchuy099.SmartPharma.inventory.entity.InventoryEntity;
+import com.nchuy099.SmartPharma.inventory.entity.InventorySummaryEntity;
 import com.nchuy099.SmartPharma.inventory.entity.InventoryTransactionEntity;
+import com.nchuy099.SmartPharma.inventory.repository.InventoryLotRepository;
 import com.nchuy099.SmartPharma.inventory.repository.InventoryRepository;
+import com.nchuy099.SmartPharma.inventory.repository.InventorySummaryRepository;
 import com.nchuy099.SmartPharma.inventory.repository.InventoryTransactionRepository;
 import com.nchuy099.SmartPharma.inventory.repository.InventoryTransactionRepository.AverageImportCostProjection;
 import com.nchuy099.SmartPharma.inventory.domain.enums.TransactionType;
@@ -33,6 +33,8 @@ import com.nchuy099.SmartPharma.product.entity.ProductVariantEntity;
 class InventoryServiceTest {
 
     private InventoryRepository inventoryRepository;
+    private InventorySummaryRepository inventorySummaryRepository;
+    private InventoryLotRepository inventoryLotRepository;
     private InventoryTransactionRepository inventoryTransactionRepository;
     private InventoryDomainService inventoryDomainService;
     private InventoryService inventoryService;
@@ -40,18 +42,25 @@ class InventoryServiceTest {
     @BeforeEach
     void setUp() {
         inventoryRepository = mock(InventoryRepository.class);
+        inventorySummaryRepository = mock(InventorySummaryRepository.class);
+        inventoryLotRepository = mock(InventoryLotRepository.class);
         inventoryTransactionRepository = mock(InventoryTransactionRepository.class);
         inventoryDomainService = mock(InventoryDomainService.class);
-        inventoryService = new InventoryService(inventoryRepository, inventoryTransactionRepository, inventoryDomainService);
+        inventoryService = new InventoryService(
+                inventoryRepository,
+                inventorySummaryRepository,
+                inventoryLotRepository,
+                inventoryTransactionRepository,
+                inventoryDomainService);
     }
 
     @Test
     void getInventoryListShouldExposeAverageImportCost() {
         UUID productId = UUID.fromString("11111111-1111-1111-1111-111111111111");
         UUID variantId = UUID.fromString("22222222-2222-2222-2222-222222222222");
-        InventoryEntity inventory = inventory(productId, variantId, "Product A", "SKU-A", 20, 5, BigDecimal.valueOf(100000));
+        InventorySummaryEntity inventory = inventory(productId, variantId, "Product A", "SKU-A", 20, 5, BigDecimal.valueOf(100000));
 
-        when(inventoryRepository.findAllWithVariant(anyString(), any()))
+        when(inventorySummaryRepository.findAllWithVariant(anyString(), any()))
                 .thenReturn(new PageImpl<>(List.of(inventory), PageRequest.of(0, 10), 1));
         when(inventoryTransactionRepository.findAverageImportCostsByVariantIds(anyCollection()))
                 .thenReturn(List.of(averageProjection(variantId, BigDecimal.valueOf(125000))));
@@ -69,12 +78,12 @@ class InventoryServiceTest {
         UUID productId = UUID.fromString("11111111-1111-1111-1111-111111111111");
         UUID variantId = UUID.fromString("22222222-2222-2222-2222-222222222222");
         UUID inventoryId = UUID.fromString("33333333-3333-3333-3333-333333333333");
-        InventoryEntity inventory = inventory(productId, variantId, "Product A", "SKU-A", 20, 5, BigDecimal.valueOf(100000));
+        InventorySummaryEntity inventory = inventory(productId, variantId, "Product A", "SKU-A", 20, 5, BigDecimal.valueOf(100000));
         inventory.setId(inventoryId);
-        InventoryTransactionEntity transaction = transaction(inventory, 3, BigDecimal.valueOf(90000));
+        InventoryTransactionEntity transaction = transaction(inventory, inventory.getVariant(), 3, BigDecimal.valueOf(90000));
 
-        when(inventoryRepository.findByVariant_Id(variantId)).thenReturn(java.util.Optional.of(inventory));
-        when(inventoryTransactionRepository.findByInventoryId(eq(inventoryId), any()))
+        when(inventorySummaryRepository.findByVariantId(variantId)).thenReturn(java.util.Optional.of(inventory));
+        when(inventoryTransactionRepository.findByInventorySummaryId(any(), any()))
                 .thenReturn(new PageImpl<>(List.of(transaction), PageRequest.of(0, 10), 1));
         when(inventoryTransactionRepository.findAverageImportCostByVariantId(variantId))
                 .thenReturn(BigDecimal.valueOf(125000));
@@ -95,7 +104,7 @@ class InventoryServiceTest {
         assertEquals(BigDecimal.valueOf(100000), response.getTransactions().get(0).getSalePrice());
     }
 
-    private InventoryEntity inventory(UUID productId, UUID variantId, String productName, String sku, int onHand, int reserved, BigDecimal salePrice) {
+    private InventorySummaryEntity inventory(UUID productId, UUID variantId, String productName, String sku, int onHand, int reserved, BigDecimal salePrice) {
         ProductEntity product = ProductEntity.builder()
                 .name(productName)
                 .webName(productName + " Web")
@@ -114,7 +123,7 @@ class InventoryServiceTest {
                 .build();
         variant.setId(variantId);
 
-        InventoryEntity inventory = InventoryEntity.builder()
+        InventorySummaryEntity inventory = InventorySummaryEntity.builder()
                 .variant(variant)
                 .quantityOnHand(onHand)
                 .quantityReserved(reserved)
@@ -123,9 +132,10 @@ class InventoryServiceTest {
         return inventory;
     }
 
-    private InventoryTransactionEntity transaction(InventoryEntity inventory, int quantity, BigDecimal unitCost) {
+    private InventoryTransactionEntity transaction(InventorySummaryEntity inventory, ProductVariantEntity variant, int quantity, BigDecimal unitCost) {
         InventoryTransactionEntity transaction = InventoryTransactionEntity.builder()
-                .inventory(inventory)
+                .inventorySummary(inventory)
+                .variant(variant)
                 .type(TransactionType.IMPORT)
                 .quantity(quantity)
                 .unitCost(unitCost)

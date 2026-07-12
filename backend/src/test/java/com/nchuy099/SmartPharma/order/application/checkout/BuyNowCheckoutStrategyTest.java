@@ -2,6 +2,7 @@ package com.nchuy099.SmartPharma.order.application.checkout;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -12,8 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.nchuy099.SmartPharma.common.exception.AppException;
-import com.nchuy099.SmartPharma.inventory.entity.InventoryEntity;
-import com.nchuy099.SmartPharma.inventory.service.InventoryDomainService;
+import com.nchuy099.SmartPharma.inventory.entity.InventorySummaryEntity;
+import com.nchuy099.SmartPharma.inventory.service.InventoryQueryService;
 import com.nchuy099.SmartPharma.order.application.create.CheckoutContext;
 import com.nchuy099.SmartPharma.order.domain.enums.OrderMode;
 import com.nchuy099.SmartPharma.order.domain.service.OrderAmountCalculator;
@@ -25,15 +26,15 @@ import com.nchuy099.SmartPharma.product.entity.ProductVariantEntity;
 
 class BuyNowCheckoutStrategyTest {
 
-    private InventoryDomainService inventoryDomainService;
+    private InventoryQueryService inventoryQueryService;
     private OrderAmountCalculator orderAmountCalculator;
     private BuyNowCheckoutStrategy strategy;
 
     @BeforeEach
     void setUp() {
-        inventoryDomainService = mock(InventoryDomainService.class);
+        inventoryQueryService = mock(InventoryQueryService.class);
         orderAmountCalculator = mock(OrderAmountCalculator.class);
-        strategy = new BuyNowCheckoutStrategy(inventoryDomainService, orderAmountCalculator);
+        strategy = new BuyNowCheckoutStrategy(inventoryQueryService, orderAmountCalculator);
     }
 
     @Test
@@ -48,9 +49,10 @@ class BuyNowCheckoutStrategyTest {
         UUID variantId = UUID.randomUUID();
         OrderPreviewRequest request = buyNowPreviewRequest(variantId, 2);
         ProductVariantEntity variant = variant();
-        InventoryEntity inventory = InventoryEntity.builder().variant(variant).build();
+        InventorySummaryEntity inventory = summary(variant);
 
-        when(inventoryDomainService.getInventory(variantId.toString())).thenReturn(inventory);
+        when(inventoryQueryService.getInventorySummary(variantId.toString())).thenReturn(inventory);
+        doNothing().when(inventoryQueryService).validateAvailableStock(variant.getId(), 2);
         when(orderAmountCalculator.calculateAmount(variant, 2)).thenReturn(new BigDecimal("240000"));
 
         CheckoutContext context = strategy.prepareForPreview(request, UUID.randomUUID());
@@ -62,13 +64,14 @@ class BuyNowCheckoutStrategyTest {
     }
 
     @Test
-    void prepareForCreateShouldReserveInventory() {
+    void prepareForCreateShouldValidateInventory() {
         UUID variantId = UUID.randomUUID();
         OrderCreateRequest request = buyNowCreateRequest(variantId, 2);
         ProductVariantEntity variant = variant();
-        InventoryEntity inventory = InventoryEntity.builder().variant(variant).build();
+        InventorySummaryEntity inventory = summary(variant);
 
-        when(inventoryDomainService.getInventory(variantId.toString())).thenReturn(inventory);
+        when(inventoryQueryService.getInventorySummary(variantId.toString())).thenReturn(inventory);
+        doNothing().when(inventoryQueryService).validateAvailableStock(variant.getId(), 2);
         when(orderAmountCalculator.calculateAmount(variant, 2)).thenReturn(new BigDecimal("240000"));
 
         CheckoutContext context = strategy.prepareForCreate(request, UUID.randomUUID());
@@ -127,5 +130,13 @@ class BuyNowCheckoutStrategyTest {
                 .build();
         variant.setId(UUID.randomUUID());
         return variant;
+    }
+
+    private InventorySummaryEntity summary(ProductVariantEntity variant) {
+        return InventorySummaryEntity.builder()
+                .variant(variant)
+                .quantityOnHand(10)
+                .quantityReserved(0)
+                .build();
     }
 }

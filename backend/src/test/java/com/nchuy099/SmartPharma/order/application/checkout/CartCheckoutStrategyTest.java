@@ -1,6 +1,7 @@
 package com.nchuy099.SmartPharma.order.application.checkout;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,8 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import com.nchuy099.SmartPharma.cart.entity.CartItemEntity;
 import com.nchuy099.SmartPharma.cart.service.CartService;
-import com.nchuy099.SmartPharma.inventory.entity.InventoryEntity;
-import com.nchuy099.SmartPharma.inventory.service.InventoryDomainService;
+import com.nchuy099.SmartPharma.inventory.service.InventoryQueryService;
 import com.nchuy099.SmartPharma.order.application.create.CheckoutContext;
 import com.nchuy099.SmartPharma.order.domain.enums.OrderMode;
 import com.nchuy099.SmartPharma.order.domain.service.OrderAmountCalculator;
@@ -25,16 +25,16 @@ import com.nchuy099.SmartPharma.product.entity.ProductVariantEntity;
 class CartCheckoutStrategyTest {
 
     private CartService cartService;
-    private InventoryDomainService inventoryDomainService;
+    private InventoryQueryService inventoryQueryService;
     private OrderAmountCalculator orderAmountCalculator;
     private CartCheckoutStrategy strategy;
 
     @BeforeEach
     void setUp() {
         cartService = mock(CartService.class);
-        inventoryDomainService = mock(InventoryDomainService.class);
+        inventoryQueryService = mock(InventoryQueryService.class);
         orderAmountCalculator = mock(OrderAmountCalculator.class);
-        strategy = new CartCheckoutStrategy(cartService, inventoryDomainService, orderAmountCalculator);
+        strategy = new CartCheckoutStrategy(cartService, inventoryQueryService, orderAmountCalculator);
     }
 
     @Test
@@ -52,30 +52,32 @@ class CartCheckoutStrategyTest {
 
         when(cartService.getSelectedCartItems(userId)).thenReturn(cartItems);
         when(orderAmountCalculator.calculateCartAmount(cartItems)).thenReturn(new BigDecimal("240000"));
+        doNothing().when(inventoryQueryService).validateAvailableStock(cartItem.getVariant().getId(), 2);
 
         CheckoutContext context = strategy.prepareForPreview(new com.nchuy099.SmartPharma.order.dto.request.OrderPreviewRequest(), userId);
 
         assertEquals(OrderMode.CART, context.mode());
         assertEquals(cartItems, context.cartItems());
         assertEquals(new BigDecimal("240000"), context.amount());
-        verify(inventoryDomainService).ensureCartAvailable(cartItems);
+        verify(inventoryQueryService).validateAvailableStock(cartItem.getVariant().getId(), 2);
     }
 
     @Test
-    void prepareForCreateShouldReserveCartItems() {
+    void prepareForCreateShouldValidateCartItems() {
         UUID userId = UUID.randomUUID();
         CartItemEntity cartItem = cartItem();
         List<CartItemEntity> cartItems = List.of(cartItem);
 
         when(cartService.getSelectedCartItems(userId)).thenReturn(cartItems);
         when(orderAmountCalculator.calculateCartAmount(cartItems)).thenReturn(new BigDecimal("240000"));
+        doNothing().when(inventoryQueryService).validateAvailableStock(cartItem.getVariant().getId(), 2);
 
         CheckoutContext context = strategy.prepareForCreate(new com.nchuy099.SmartPharma.order.dto.request.OrderCreateRequest(), userId);
 
         assertEquals(OrderMode.CART, context.mode());
         assertEquals(cartItems, context.cartItems());
         assertEquals(new BigDecimal("240000"), context.amount());
-        verify(inventoryDomainService).reserveCart(cartItems);
+        verify(inventoryQueryService).validateAvailableStock(cartItem.getVariant().getId(), 2);
     }
 
     private CartItemEntity cartItem() {

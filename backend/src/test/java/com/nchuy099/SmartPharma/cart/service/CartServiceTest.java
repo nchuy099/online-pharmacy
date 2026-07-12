@@ -2,6 +2,7 @@ package com.nchuy099.SmartPharma.cart.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,8 +22,7 @@ import com.nchuy099.SmartPharma.cart.repository.CartItemRepository;
 import com.nchuy099.SmartPharma.cart.repository.CartRepository;
 import com.nchuy099.SmartPharma.common.exception.AppException;
 import com.nchuy099.SmartPharma.common.utils.SecurityUtils;
-import com.nchuy099.SmartPharma.inventory.entity.InventoryEntity;
-import com.nchuy099.SmartPharma.inventory.service.InventoryDomainService;
+import com.nchuy099.SmartPharma.inventory.service.InventoryQueryService;
 import com.nchuy099.SmartPharma.product.entity.ProductEntity;
 import com.nchuy099.SmartPharma.product.entity.ProductVariantEntity;
 import com.nchuy099.SmartPharma.product.repository.ProductVariantRepository;
@@ -34,7 +34,7 @@ class CartServiceTest {
     private CartItemRepository cartItemRepository;
     private CartRepository cartRepository;
     private SecurityUtils securityUtils;
-    private InventoryDomainService inventoryDomainService;
+    private InventoryQueryService inventoryQueryService;
     private ProductVariantRepository productVariantRepository;
     private UserRepository userRepository;
     private CartService cartService;
@@ -44,14 +44,14 @@ class CartServiceTest {
         cartItemRepository = mock(CartItemRepository.class);
         cartRepository = mock(CartRepository.class);
         securityUtils = mock(SecurityUtils.class);
-        inventoryDomainService = mock(InventoryDomainService.class);
+        inventoryQueryService = mock(InventoryQueryService.class);
         productVariantRepository = mock(ProductVariantRepository.class);
         userRepository = mock(UserRepository.class);
         cartService = new CartService(
                 cartItemRepository,
                 cartRepository,
                 securityUtils,
-                inventoryDomainService,
+                inventoryQueryService,
                 productVariantRepository,
                 userRepository);
     }
@@ -96,7 +96,6 @@ class CartServiceTest {
         UUID userId = UUID.randomUUID();
         UUID cartId = UUID.randomUUID();
         UUID variantId = UUID.randomUUID();
-        UUID productId = UUID.randomUUID();
 
         UserEntity user = new UserEntity();
         user.setId(userId);
@@ -105,18 +104,7 @@ class CartServiceTest {
         cart.setId(cartId);
         cart.setUser(user);
 
-        ProductEntity product = ProductEntity.builder().build();
-        product.setId(productId);
-
-        ProductVariantEntity variant = ProductVariantEntity.builder()
-                .product(product)
-                .sku("SKU-1")
-                .unitType("Box")
-                .salePrice(java.math.BigDecimal.valueOf(1000))
-                .build();
-        variant.setId(variantId);
-        variant.setInventory(inventoryWithAvailableStock(5, variant));
-
+        ProductVariantEntity variant = variant(variantId, "SKU-1");
         CartItemEntity existingItem = CartItemEntity.builder()
                 .cart(cart)
                 .variant(variant)
@@ -132,13 +120,14 @@ class CartServiceTest {
         when(securityUtils.getCurrentUserId()).thenReturn(userId);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(cartRepository.findByUser_Id(userId)).thenReturn(Optional.of(cart));
-        when(inventoryDomainService.getInventory(variantId.toString())).thenReturn(inventoryWithAvailableStock(5, variant));
+        when(productVariantRepository.findByIdWithProduct(variantId)).thenReturn(Optional.of(variant));
         when(cartItemRepository.findByVariant_IdAndCart_Id(variantId, cartId)).thenReturn(Optional.of(existingItem));
+        doNothing().when(inventoryQueryService).validateAvailableStock(variantId, 3);
 
         cartService.addItem(request);
 
         assertEquals(3, existingItem.getQuantity());
-        verify(cartItemRepository).findByVariant_IdAndCart_Id(variantId, cartId);
+        verify(inventoryQueryService).validateAvailableStock(variantId, 3);
     }
 
     @Test
@@ -146,7 +135,6 @@ class CartServiceTest {
         UUID userId = UUID.randomUUID();
         UUID cartId = UUID.randomUUID();
         UUID variantId = UUID.randomUUID();
-        UUID productId = UUID.randomUUID();
 
         UserEntity user = new UserEntity();
         user.setId(userId);
@@ -155,17 +143,7 @@ class CartServiceTest {
         cart.setId(cartId);
         cart.setUser(user);
 
-        ProductEntity product = ProductEntity.builder().build();
-        product.setId(productId);
-
-        ProductVariantEntity variant = ProductVariantEntity.builder()
-                .product(product)
-                .sku("SKU-2")
-                .unitType("Vial")
-                .salePrice(java.math.BigDecimal.valueOf(2000))
-                .build();
-        variant.setId(variantId);
-        variant.setInventory(inventoryWithAvailableStock(10, variant));
+        ProductVariantEntity variant = variant(variantId, "SKU-2");
 
         AddCartItemRequest request = new AddCartItemRequest();
         request.setVariantId(variantId.toString());
@@ -174,49 +152,25 @@ class CartServiceTest {
         when(securityUtils.getCurrentUserId()).thenReturn(userId);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(cartRepository.findByUser_Id(userId)).thenReturn(Optional.of(cart));
-        when(inventoryDomainService.getInventory(variantId.toString())).thenReturn(inventoryWithAvailableStock(10, variant));
+        when(productVariantRepository.findByIdWithProduct(variantId)).thenReturn(Optional.of(variant));
         when(cartItemRepository.findByVariant_IdAndCart_Id(variantId, cartId)).thenReturn(Optional.empty());
+        doNothing().when(inventoryQueryService).validateAvailableStock(variantId, 4);
 
         cartService.addItem(request);
 
         assertEquals(1, cart.getCartItems().size());
         assertEquals(4, cart.getCartItems().get(0).getQuantity());
+        verify(inventoryQueryService).validateAvailableStock(variantId, 4);
     }
 
     @Test
     void updateItemShouldRejectWhenQuantityExceedsAvailableStock() {
         UUID userId = UUID.randomUUID();
-        UUID cartId = UUID.randomUUID();
         UUID itemId = UUID.randomUUID();
         UUID variantId = UUID.randomUUID();
-        UUID productId = UUID.randomUUID();
 
-        UserEntity user = new UserEntity();
-        user.setId(userId);
-
-        CartEntity cart = CartEntity.builder().build();
-        cart.setId(cartId);
-        cart.setUser(user);
-
-        ProductEntity product = ProductEntity.builder().build();
-        product.setId(productId);
-
-        ProductVariantEntity variant = ProductVariantEntity.builder()
-                .product(product)
-                .sku("SKU-3")
-                .unitType("Bottle")
-                .salePrice(java.math.BigDecimal.valueOf(3000))
-                .build();
-        variant.setId(variantId);
-        InventoryEntity inventory = InventoryEntity.builder()
-                .variant(variant)
-                .quantityOnHand(2)
-                .quantityReserved(0)
-                .build();
-        variant.setInventory(inventory);
-
+        ProductVariantEntity variant = variant(variantId, "SKU-3");
         CartItemEntity item = CartItemEntity.builder()
-                .cart(cart)
                 .variant(variant)
                 .quantity(1)
                 .build();
@@ -228,18 +182,30 @@ class CartServiceTest {
 
         when(securityUtils.getCurrentUserId()).thenReturn(userId);
         when(cartItemRepository.findByIdAndCart_User_Id(itemId, userId)).thenReturn(Optional.of(item));
-        when(inventoryDomainService.getInventory(variantId.toString())).thenReturn(inventoryWithAvailableStock(2, variant));
+        org.mockito.Mockito.doThrow(new AppException(com.nchuy099.SmartPharma.common.exception.ErrorCode.CONFLICT,
+                "Product stock not enough to proceed"))
+                .when(inventoryQueryService).validateAvailableStock(variantId, 1000);
 
         AppException exception = assertThrows(AppException.class, () -> cartService.updateItem(itemId.toString(), request));
 
-        assertEquals("Not enough stock to reserve", exception.getMessage());
+        assertEquals("Product stock not enough to proceed", exception.getMessage());
     }
 
-    private InventoryEntity inventoryWithAvailableStock(int availableQuantity, ProductVariantEntity variant) {
-        return InventoryEntity.builder()
-                .variant(variant)
-                .quantityOnHand(availableQuantity)
-                .quantityReserved(0)
+    private ProductVariantEntity variant(UUID variantId, String sku) {
+        ProductEntity product = ProductEntity.builder()
+                .name("Product")
+                .webName("Product")
+                .slug("product")
                 .build();
+        product.setId(UUID.randomUUID());
+
+        ProductVariantEntity variant = ProductVariantEntity.builder()
+                .product(product)
+                .sku(sku)
+                .unitType("Box")
+                .salePrice(java.math.BigDecimal.valueOf(1000))
+                .build();
+        variant.setId(variantId);
+        return variant;
     }
 }

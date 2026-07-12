@@ -40,8 +40,8 @@ import com.nchuy099.SmartPharma.flashsale.dto.response.FlashSaleItemResponse;
 import com.nchuy099.SmartPharma.flashsale.dto.response.FlashSaleCampaignResponse;
 import com.nchuy099.SmartPharma.flashsale.entity.FlashSaleCampaignEntity;
 import com.nchuy099.SmartPharma.flashsale.repository.FlashSaleCampaignRepository;
-import com.nchuy099.SmartPharma.inventory.entity.InventoryEntity;
-import com.nchuy099.SmartPharma.inventory.repository.InventoryRepository;
+import com.nchuy099.SmartPharma.inventory.entity.InventorySummaryEntity;
+import com.nchuy099.SmartPharma.inventory.repository.InventorySummaryRepository;
 import com.nchuy099.SmartPharma.product.entity.ProductEntity;
 import com.nchuy099.SmartPharma.product.entity.ProductImageEntity;
 import com.nchuy099.SmartPharma.product.entity.ProductVariantEntity;
@@ -52,7 +52,7 @@ class FlashSaleAutoGenerationServiceTest {
     private FlashSaleCampaignRepository campaignRepository;
     private FlashSaleService flashSaleService;
     private ProductVariantRepository productVariantRepository;
-    private InventoryRepository inventoryRepository;
+    private InventorySummaryRepository inventoryRepository;
     private FlashSaleAutoGenerationService service;
 
     @BeforeEach
@@ -60,7 +60,7 @@ class FlashSaleAutoGenerationServiceTest {
         campaignRepository = mock(FlashSaleCampaignRepository.class);
         flashSaleService = mock(FlashSaleService.class);
         productVariantRepository = mock(ProductVariantRepository.class);
-        inventoryRepository = mock(InventoryRepository.class);
+        inventoryRepository = mock(InventorySummaryRepository.class);
         service = new FlashSaleAutoGenerationService(
                 campaignRepository,
                 flashSaleService,
@@ -81,7 +81,7 @@ class FlashSaleAutoGenerationServiceTest {
         when(campaignRepository.findByCode(campaignCode)).thenReturn(Optional.empty());
 
         List<UUID> variantIds = new ArrayList<>();
-        Map<UUID, InventoryEntity> inventories = new HashMap<>();
+        Map<UUID, InventorySummaryEntity> inventories = new HashMap<>();
         Map<UUID, ProductVariantEntity> variants = new HashMap<>();
         for (int i = 0; i < 10; i++) {
             UUID variantId = UUID.randomUUID();
@@ -198,7 +198,7 @@ class FlashSaleAutoGenerationServiceTest {
     @Test
     void generateRandomDraftCampaignShouldCreateDraftCampaignWithEligibleVariants() {
         List<UUID> variantIds = new ArrayList<>();
-        Map<UUID, InventoryEntity> inventories = new HashMap<>();
+        Map<UUID, InventorySummaryEntity> inventories = new HashMap<>();
         Map<UUID, ProductVariantEntity> variants = new HashMap<>();
         for (int i = 0; i < 10; i++) {
             UUID variantId = UUID.randomUUID();
@@ -267,12 +267,12 @@ class FlashSaleAutoGenerationServiceTest {
         return variant;
     }
 
-    private InventoryEntity inventoryWithVariant(UUID variantId, int available) {
+    private InventorySummaryEntity inventoryWithVariant(UUID variantId, int available) {
         ProductVariantEntity variant = ProductVariantEntity.builder()
                 .sku("SKU-" + variantId)
                 .build();
         variant.setId(variantId);
-        return InventoryEntity.builder()
+        return InventorySummaryEntity.builder()
                 .variant(variant)
                 .quantityOnHand(available)
                 .quantityReserved(0)

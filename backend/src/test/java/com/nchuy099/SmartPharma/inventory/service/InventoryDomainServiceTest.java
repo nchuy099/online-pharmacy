@@ -1,27 +1,21 @@
 package com.nchuy099.SmartPharma.inventory.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
+import com.nchuy099.SmartPharma.cart.entity.CartItemEntity;
 import com.nchuy099.SmartPharma.common.exception.AppException;
-import com.nchuy099.SmartPharma.inventory.domain.enums.TransactionType;
 import com.nchuy099.SmartPharma.inventory.entity.InventoryEntity;
-import com.nchuy099.SmartPharma.inventory.entity.InventoryTransactionEntity;
+import com.nchuy099.SmartPharma.inventory.entity.InventorySummaryEntity;
 import com.nchuy099.SmartPharma.inventory.repository.InventoryRepository;
 import com.nchuy099.SmartPharma.inventory.repository.InventoryTransactionRepository;
 import com.nchuy099.SmartPharma.product.entity.ProductEntity;
@@ -47,135 +41,88 @@ class InventoryDomainServiceTest {
     }
 
     @Test
-    void getInventoryShouldCreateDefaultInventoryWhenMissing() {
+    void getInventoryShouldCreateDefaultSummaryWhenMissing() {
         UUID variantId = UUID.randomUUID();
-        ProductVariantEntity variant = ProductVariantEntity.builder()
-                .sku("SKU-1")
-                .product(ProductEntity.builder().name("Product").build())
-                .build();
-        variant.setId(variantId);
-        InventoryEntity createdInventory = InventoryEntity.builder()
-                .variant(variant)
-                .quantityOnHand(0)
-                .quantityReserved(0)
-                .build();
+        ProductVariantEntity variant = variant(variantId);
+        InventorySummaryEntity summary = summary(variant, 0, 0);
 
-        when(inventoryRepository.findByVariant_Id(variantId))
+        when(inventoryRepository.findByVariantId(variantId))
                 .thenReturn(Optional.empty())
-                .thenReturn(Optional.of(createdInventory));
+                .thenReturn(Optional.of(summary));
         when(productVariantRepository.findById(variantId)).thenReturn(Optional.of(variant));
-        when(inventoryRepository.insertDefaultInventory(variantId)).thenReturn(1);
+        when(inventoryRepository.insertDefaultSummary(variantId)).thenReturn(1);
 
         InventoryEntity result = inventoryDomainService.getInventory(variantId.toString());
 
-        assertSame(createdInventory, result);
-        verify(inventoryRepository).insertDefaultInventory(variantId);
+        assertEquals(variantId, result.getVariant().getId());
+        assertEquals(0, result.getQuantityAvailable());
+        verify(inventoryRepository).insertDefaultSummary(variantId);
     }
 
     @Test
-    void reserveShouldUseAtomicUpdateAndSaveTransaction() {
-        UUID inventoryId = UUID.randomUUID();
-        InventoryEntity inventory = inventoryWithId(inventoryId);
-        when(inventoryRepository.reserveQuantity(inventoryId, 4)).thenReturn(1);
-        when(inventoryRepository.getReferenceById(inventoryId)).thenReturn(inventory);
-        when(inventoryTransactionRepository.save(any(InventoryTransactionEntity.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+    void reserveShouldIncreaseReservedQuantity() {
+        InventoryEntity inventory = inventory(10, 2);
 
         inventoryDomainService.reserve(inventory, 4);
 
-        verify(inventoryRepository).reserveQuantity(inventoryId, 4);
-        ArgumentCaptor<InventoryTransactionEntity> captor = ArgumentCaptor.forClass(InventoryTransactionEntity.class);
-        verify(inventoryTransactionRepository).save(captor.capture());
-        assertEquals(TransactionType.RESERVE, captor.getValue().getType());
-        assertEquals(4, captor.getValue().getQuantity());
-        assertEquals("Reserve Stock", captor.getValue().getNote());
-        assertNull(captor.getValue().getUnitCost());
+        assertEquals(6, inventory.getQuantityReserved());
+        assertEquals(4, inventory.getQuantityAvailable());
     }
 
     @Test
-    void importStockShouldUseAtomicUpdateAndRecordTransaction() {
-        UUID inventoryId = UUID.randomUUID();
-        InventoryEntity inventory = inventoryWithId(inventoryId);
-        when(inventoryRepository.incrementQuantityOnHand(inventoryId, 7)).thenReturn(1);
-        when(inventoryRepository.getReferenceById(inventoryId)).thenReturn(inventory);
-        when(inventoryTransactionRepository.save(any(InventoryTransactionEntity.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        inventoryDomainService.importStock(inventory, 7, null, "Import batch");
-
-        verify(inventoryRepository).incrementQuantityOnHand(inventoryId, 7);
-        ArgumentCaptor<InventoryTransactionEntity> captor = ArgumentCaptor.forClass(InventoryTransactionEntity.class);
-        verify(inventoryTransactionRepository).save(captor.capture());
-        assertEquals(TransactionType.IMPORT, captor.getValue().getType());
-        assertEquals(7, captor.getValue().getQuantity());
-        assertEquals("Import batch", captor.getValue().getNote());
-        assertEquals(BigDecimal.ZERO, captor.getValue().getUnitCost());
-    }
-
-    @Test
-    void importStockShouldUpdateAverageCostUsingWeightedAverage() {
-        UUID inventoryId = UUID.randomUUID();
-        InventoryEntity inventory = inventoryWithId(inventoryId);
-        inventory.setQuantityOnHand(10);
-        inventory.getVariant().setAverageCost(BigDecimal.valueOf(100));
-        inventory.getVariant().setLatestImportCost(BigDecimal.valueOf(100));
-
-        when(inventoryRepository.incrementQuantityOnHand(inventoryId, 10)).thenReturn(1);
-        when(inventoryRepository.getReferenceById(inventoryId)).thenReturn(inventory);
-        when(inventoryTransactionRepository.save(any(InventoryTransactionEntity.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        inventoryDomainService.importStock(inventory, 10, BigDecimal.valueOf(150), "Weighted batch");
-
-        assertEquals(new BigDecimal("125.00"), inventory.getVariant().getAverageCost());
-        assertEquals(BigDecimal.valueOf(150), inventory.getVariant().getLatestImportCost());
-        verify(productVariantRepository).save(inventory.getVariant());
-    }
-
-    @Test
-    void exportShouldFailWhenAtomicUpdateTouchesNoRows() {
-        UUID inventoryId = UUID.randomUUID();
-        InventoryEntity inventory = inventoryWithId(inventoryId);
-        when(inventoryRepository.exportQuantity(inventoryId, 2)).thenReturn(0);
+    void exportShouldFailWhenReservedNotEnough() {
+        InventoryEntity inventory = inventory(10, 1);
 
         AppException exception = assertThrows(AppException.class, () -> inventoryDomainService.export(inventory, 2));
 
         assertEquals("Not enough reserved stock to export", exception.getMessage());
-        verify(inventoryTransactionRepository, never()).save(any(InventoryTransactionEntity.class));
     }
 
     @Test
-    void releaseShouldUseAtomicUpdateAndRecordTransaction() {
-        UUID inventoryId = UUID.randomUUID();
-        InventoryEntity inventory = inventoryWithId(inventoryId);
-        when(inventoryRepository.releaseReservation(inventoryId, 3)).thenReturn(1);
-        when(inventoryRepository.getReferenceById(inventoryId)).thenReturn(inventory);
-        when(inventoryTransactionRepository.save(any(InventoryTransactionEntity.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+    void ensureCartAvailableShouldFailWhenAnyItemExceedsStock() {
+        UUID variantId = UUID.randomUUID();
+        ProductVariantEntity variant = variant(variantId);
+        CartItemEntity item = CartItemEntity.builder()
+                .variant(variant)
+                .quantity(5)
+                .build();
 
-        inventoryDomainService.release(inventory, 3);
+        when(inventoryRepository.findByVariantId(variantId)).thenReturn(Optional.of(summary(variant, 3, 0)));
 
-        verify(inventoryRepository).releaseReservation(inventoryId, 3);
-        ArgumentCaptor<InventoryTransactionEntity> captor = ArgumentCaptor.forClass(InventoryTransactionEntity.class);
-        verify(inventoryTransactionRepository).save(captor.capture());
-        assertEquals(TransactionType.RELEASE, captor.getValue().getType());
-        assertEquals(3, captor.getValue().getQuantity());
-        assertEquals("Release reserved stock", captor.getValue().getNote());
+        AppException exception = assertThrows(AppException.class,
+                () -> inventoryDomainService.ensureCartAvailable(java.util.List.of(item)));
+
+        assertEquals("Product stock not enough to proceed", exception.getMessage());
     }
 
-    private InventoryEntity inventoryWithId(UUID inventoryId) {
-        ProductVariantEntity variant = ProductVariantEntity.builder()
-                .sku("SKU-" + inventoryId.toString().substring(0, 8))
-                .product(ProductEntity.builder().name("Product").build())
-                .build();
-        variant.setId(UUID.randomUUID());
+    private ProductVariantEntity variant(UUID variantId) {
+        ProductEntity product = ProductEntity.builder().name("Product").build();
+        product.setId(UUID.randomUUID());
 
-        InventoryEntity inventory = InventoryEntity.builder()
-                .variant(variant)
-                .quantityOnHand(10)
-                .quantityReserved(2)
+        ProductVariantEntity variant = ProductVariantEntity.builder()
+                .sku("SKU-" + variantId.toString().substring(0, 8))
+                .product(product)
                 .build();
-        inventory.setId(inventoryId);
+        variant.setId(variantId);
+        return variant;
+    }
+
+    private InventorySummaryEntity summary(ProductVariantEntity variant, int onHand, int reserved) {
+        InventorySummaryEntity summary = InventorySummaryEntity.builder()
+                .variant(variant)
+                .quantityOnHand(onHand)
+                .quantityReserved(reserved)
+                .build();
+        summary.setId(UUID.randomUUID());
+        return summary;
+    }
+
+    private InventoryEntity inventory(int onHand, int reserved) {
+        InventoryEntity inventory = new InventoryEntity();
+        inventory.setVariant(variant(UUID.randomUUID()));
+        inventory.setQuantityOnHand(onHand);
+        inventory.setQuantityReserved(reserved);
+        inventory.setId(UUID.randomUUID());
         return inventory;
     }
 }

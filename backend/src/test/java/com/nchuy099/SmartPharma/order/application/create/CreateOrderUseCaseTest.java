@@ -15,18 +15,23 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.nchuy099.SmartPharma.cart.entity.CartItemEntity;
 import com.nchuy099.SmartPharma.cart.service.CartService;
 import com.nchuy099.SmartPharma.common.utils.SecurityUtils;
-import com.nchuy099.SmartPharma.flashsale.dto.response.FlashSaleReservationView;
 import com.nchuy099.SmartPharma.flashsale.service.FlashSaleService;
+import com.nchuy099.SmartPharma.inventory.domain.enums.InventoryReferenceType;
+import com.nchuy099.SmartPharma.inventory.entity.InventoryLotEntity;
+import com.nchuy099.SmartPharma.inventory.model.ReservationAllocation;
+import com.nchuy099.SmartPharma.inventory.repository.InventoryLotRepository;
+import com.nchuy099.SmartPharma.inventory.service.InventoryCommandService;
 import com.nchuy099.SmartPharma.order.application.checkout.CheckoutStrategy;
 import com.nchuy099.SmartPharma.order.application.checkout.CheckoutStrategyResolver;
 import com.nchuy099.SmartPharma.order.application.checkout.quote.CheckoutQuoteEntity;
 import com.nchuy099.SmartPharma.order.application.checkout.quote.CheckoutQuoteService;
 import com.nchuy099.SmartPharma.order.domain.entity.OrderEntity;
+import com.nchuy099.SmartPharma.order.domain.entity.OrderItemEntity;
 import com.nchuy099.SmartPharma.order.domain.enums.OrderMode;
 import com.nchuy099.SmartPharma.order.domain.factory.OrderFactory;
+import com.nchuy099.SmartPharma.order.domain.repository.OrderItemInventoryAllocationRepository;
 import com.nchuy099.SmartPharma.order.domain.repository.OrderRepository;
 import com.nchuy099.SmartPharma.order.dto.mapper.OrderMapper;
 import com.nchuy099.SmartPharma.order.dto.request.BuyNowItemDto;
@@ -56,6 +61,9 @@ class CreateOrderUseCaseTest {
     private FlashSaleService flashSaleService;
     private CartService cartService;
     private OrderEventPublisher orderEventPublisher;
+    private InventoryCommandService inventoryCommandService;
+    private InventoryLotRepository inventoryLotRepository;
+    private OrderItemInventoryAllocationRepository orderItemInventoryAllocationRepository;
     private CreateOrderUseCase useCase;
 
     @BeforeEach
@@ -71,27 +79,47 @@ class CreateOrderUseCaseTest {
         flashSaleService = mock(FlashSaleService.class);
         cartService = mock(CartService.class);
         orderEventPublisher = mock(OrderEventPublisher.class);
+        inventoryCommandService = mock(InventoryCommandService.class);
+        inventoryLotRepository = mock(InventoryLotRepository.class);
+        orderItemInventoryAllocationRepository = mock(OrderItemInventoryAllocationRepository.class);
 
-        useCase = new CreateOrderUseCase(securityUtils, userRepository, addressRepository, checkoutQuoteService,
-                checkoutStrategyResolver, orderFactory, orderRepository, orderMapper, flashSaleService, cartService,
-                orderEventPublisher);
+        useCase = new CreateOrderUseCase(
+                securityUtils,
+                userRepository,
+                addressRepository,
+                checkoutQuoteService,
+                checkoutStrategyResolver,
+                orderFactory,
+                orderRepository,
+                orderMapper,
+                flashSaleService,
+                cartService,
+                orderEventPublisher,
+                inventoryCommandService,
+                inventoryLotRepository,
+                orderItemInventoryAllocationRepository);
     }
 
     @Test
-    void createShouldConfirmFlashSaleReservationAndPersistOrder() {
+    void createShouldReserveInventoryLotsAndPersistOrder() {
         UUID userId = UUID.randomUUID();
         UUID addressId = UUID.randomUUID();
         UUID quoteId = UUID.randomUUID();
-        UUID reservationId = UUID.randomUUID();
         UUID variantId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
+        UUID orderItemId = UUID.randomUUID();
+        UUID lotId = UUID.randomUUID();
 
-        ProductVariantEntity variant = variant();
-        CartItemEntity cartItem = CartItemEntity.builder().variant(variant).quantity(2).build();
-        List<CartItemEntity> cartItems = List.of(cartItem);
+        ProductVariantEntity variant = variant(variantId);
         UserEntity user = new UserEntity();
         user.setId(userId);
         AddressEntity address = AddressEntity.builder()
+                .fullName("Nguyen Van A")
+                .phoneNumber("0900000000")
+                .address("123 Street")
+                .provinceName("HCM")
+                .districtName("District 1")
+                .wardName("Ward 1")
                 .ghnDistrictId(2)
                 .ghnWardCode("W1")
                 .build();
@@ -103,20 +131,11 @@ class CreateOrderUseCaseTest {
                 .expectedDeliveryTime(Instant.now().plusSeconds(86400).getEpochSecond())
                 .build();
         quote.setId(quoteId);
-        FlashSaleReservationView reservation = FlashSaleReservationView.builder()
-                .reservationId(reservationId)
-                .variantId(variantId)
-                .quantity(2)
-                .flashPrice(new BigDecimal("90000"))
-                .userId(userId)
-                .build();
         CheckoutContext context = CheckoutContext.builder()
                 .mode(OrderMode.BUY_NOW)
                 .variant(variant)
                 .quantity(2)
                 .unitPriceOverride(new BigDecimal("90000"))
-                .flashSaleReservation(reservation)
-                .flashSaleReservationId(reservationId)
                 .amount(new BigDecimal("180000"))
                 .build();
         PaymentEntity payment = PaymentEntity.builder()
@@ -124,19 +143,26 @@ class CreateOrderUseCaseTest {
                 .method(PaymentMethod.BANK_TRANSFER)
                 .status(PaymentStatus.INITIATED)
                 .build();
+        OrderItemEntity orderItem = OrderItemEntity.builder()
+                .variant(variant)
+                .quantity(2)
+                .build();
+        orderItem.setId(orderItemId);
         OrderEntity order = OrderEntity.builder()
                 .user(user)
                 .itemTotalAmount(new BigDecimal("180000"))
                 .finalAmount(new BigDecimal("180000"))
                 .payment(payment)
+                .items(new java.util.ArrayList<>(List.of(orderItem)))
                 .build();
         order.setId(orderId);
+        InventoryLotEntity lot = InventoryLotEntity.builder().build();
+        lot.setId(lotId);
 
         OrderCreateRequest request = new OrderCreateRequest();
         request.setCheckoutQuoteId(quoteId);
         request.setPaymentMethod("BANK_TRANSFER");
         request.setMode("BUY_NOW");
-        request.setFlashSaleReservationId(reservationId);
         BuyNowItemDto item = new BuyNowItemDto();
         item.setVariantId(variantId.toString());
         item.setQuantity(2);
@@ -148,11 +174,19 @@ class CreateOrderUseCaseTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(checkoutQuoteService.getValidQuoteForUpdate(quoteId, userId)).thenReturn(quote);
         when(addressRepository.findByIdAndUserId(addressId, userId)).thenReturn(Optional.of(address));
-        when(checkoutStrategyResolver.resolve(OrderMode.BUY_NOW, reservationId)).thenReturn(strategy);
+        when(checkoutStrategyResolver.resolve(OrderMode.BUY_NOW, null)).thenReturn(strategy);
         when(strategy.prepareForCreate(request, userId)).thenReturn(context);
         when(orderFactory.buildBuyNowOrder(user, null, variant, 2, PaymentMethod.BANK_TRANSFER, new BigDecimal("90000")))
                 .thenReturn(order);
-        when(orderRepository.save(order)).thenReturn(order);
+        when(orderRepository.saveAndFlush(order)).thenReturn(order);
+        when(inventoryCommandService.reserveStock(
+                variantId,
+                2,
+                InventoryReferenceType.ORDER_ITEM,
+                orderItemId.toString(),
+                userId))
+                .thenReturn(List.of(new ReservationAllocation(lotId, 2, new BigDecimal("50000"))));
+        when(inventoryLotRepository.getReferenceById(lotId)).thenReturn(lot);
         when(orderMapper.toOrderResponse(order)).thenReturn(OrderResponse.builder().id(orderId.toString()).build());
 
         OrderResponse response = useCase.create(request);
@@ -160,12 +194,13 @@ class CreateOrderUseCaseTest {
         assertEquals(orderId.toString(), response.getId());
         assertEquals(new BigDecimal("195000"), order.getFinalAmount());
         assertEquals(new BigDecimal("195000"), payment.getAmount());
-        verify(flashSaleService).confirmReservation(reservationId, userId, orderId);
+        assertEquals(new BigDecimal("50000.00"), orderItem.getUnitCost());
         verify(checkoutQuoteService).consumeQuote(quote);
         verify(orderEventPublisher).publishCreated(order);
+        verify(orderItemInventoryAllocationRepository).save(any());
     }
 
-    private ProductVariantEntity variant() {
+    private ProductVariantEntity variant(UUID variantId) {
         ProductEntity product = ProductEntity.builder()
                 .name("Paracetamol")
                 .webName("Paracetamol")
@@ -178,7 +213,7 @@ class CreateOrderUseCaseTest {
                 .unitType("box")
                 .salePrice(new BigDecimal("120000"))
                 .build();
-        variant.setId(UUID.randomUUID());
+        variant.setId(variantId);
         return variant;
     }
 }

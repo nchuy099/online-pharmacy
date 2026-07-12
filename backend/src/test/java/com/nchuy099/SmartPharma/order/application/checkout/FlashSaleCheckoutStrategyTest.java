@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Test;
 import com.nchuy099.SmartPharma.common.exception.AppException;
 import com.nchuy099.SmartPharma.flashsale.dto.response.FlashSaleReservationView;
 import com.nchuy099.SmartPharma.flashsale.service.FlashSaleService;
-import com.nchuy099.SmartPharma.inventory.entity.InventoryEntity;
-import com.nchuy099.SmartPharma.inventory.service.InventoryDomainService;
+import com.nchuy099.SmartPharma.inventory.entity.InventorySummaryEntity;
+import com.nchuy099.SmartPharma.inventory.service.InventoryQueryService;
 import com.nchuy099.SmartPharma.order.application.create.CheckoutContext;
 import com.nchuy099.SmartPharma.order.domain.enums.OrderMode;
 import com.nchuy099.SmartPharma.order.domain.service.OrderAmountCalculator;
@@ -27,17 +27,17 @@ import com.nchuy099.SmartPharma.product.entity.ProductVariantEntity;
 
 class FlashSaleCheckoutStrategyTest {
 
-    private InventoryDomainService inventoryDomainService;
+    private InventoryQueryService inventoryQueryService;
     private FlashSaleService flashSaleService;
     private OrderAmountCalculator orderAmountCalculator;
     private FlashSaleCheckoutStrategy strategy;
 
     @BeforeEach
     void setUp() {
-        inventoryDomainService = mock(InventoryDomainService.class);
+        inventoryQueryService = mock(InventoryQueryService.class);
         flashSaleService = mock(FlashSaleService.class);
         orderAmountCalculator = mock(OrderAmountCalculator.class);
-        strategy = new FlashSaleCheckoutStrategy(inventoryDomainService, flashSaleService, orderAmountCalculator);
+        strategy = new FlashSaleCheckoutStrategy(inventoryQueryService, flashSaleService, orderAmountCalculator);
     }
 
     @Test
@@ -54,7 +54,7 @@ class FlashSaleCheckoutStrategyTest {
         UUID userId = UUID.randomUUID();
         OrderPreviewRequest request = request(variantId, 2, reservationId);
         ProductVariantEntity variant = variant();
-        InventoryEntity inventory = InventoryEntity.builder().variant(variant).build();
+        InventorySummaryEntity inventory = summary(variant);
         FlashSaleReservationView reservation = FlashSaleReservationView.builder()
                 .reservationId(reservationId)
                 .variantId(variantId)
@@ -62,7 +62,7 @@ class FlashSaleCheckoutStrategyTest {
                 .flashPrice(new BigDecimal("90000"))
                 .build();
 
-        when(inventoryDomainService.getInventory(variantId.toString())).thenReturn(inventory);
+        when(inventoryQueryService.getInventorySummary(variantId.toString())).thenReturn(inventory);
         when(flashSaleService.resolveReservationForCheckout(reservationId, userId)).thenReturn(reservation);
         when(orderAmountCalculator.calculateAmount(variant, 2, new BigDecimal("90000"))).thenReturn(new BigDecimal("180000"));
 
@@ -81,7 +81,7 @@ class FlashSaleCheckoutStrategyTest {
         UUID userId = UUID.randomUUID();
         OrderCreateRequest request = requestCreate(variantId, 2, reservationId);
         ProductVariantEntity variant = variant();
-        InventoryEntity inventory = InventoryEntity.builder().variant(variant).build();
+        InventorySummaryEntity inventory = summary(variant);
         FlashSaleReservationView reservation = FlashSaleReservationView.builder()
                 .reservationId(reservationId)
                 .variantId(UUID.randomUUID())
@@ -89,7 +89,7 @@ class FlashSaleCheckoutStrategyTest {
                 .flashPrice(new BigDecimal("90000"))
                 .build();
 
-        when(inventoryDomainService.getInventory(variantId.toString())).thenReturn(inventory);
+        when(inventoryQueryService.getInventorySummary(variantId.toString())).thenReturn(inventory);
         when(flashSaleService.resolveReservationForCheckout(reservationId, userId)).thenReturn(reservation);
 
         assertThrows(AppException.class, () -> strategy.prepareForCreate(request, userId));
@@ -133,5 +133,13 @@ class FlashSaleCheckoutStrategyTest {
                 .build();
         variant.setId(UUID.randomUUID());
         return variant;
+    }
+
+    private InventorySummaryEntity summary(ProductVariantEntity variant) {
+        return InventorySummaryEntity.builder()
+                .variant(variant)
+                .quantityOnHand(10)
+                .quantityReserved(0)
+                .build();
     }
 }
