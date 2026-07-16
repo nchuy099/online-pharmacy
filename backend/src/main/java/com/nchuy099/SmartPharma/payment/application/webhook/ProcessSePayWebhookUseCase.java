@@ -80,7 +80,7 @@ public class ProcessSePayWebhookUseCase {
         }
 
         final String finalOrderCode = orderCode;
-        OrderEntity order = orderRepository.findByOrderCode(finalOrderCode)
+        OrderEntity order = orderRepository.findByOrderCodeForUpdate(finalOrderCode)
                 .orElseThrow(() -> {
                     log.error("Order not found for code: {}", finalOrderCode);
                     return new AppException(ErrorCode.NOT_FOUND, "Order not found");
@@ -96,6 +96,10 @@ public class ProcessSePayWebhookUseCase {
         if (payment == null) {
             log.error("Payment entity missing for order: {}", finalOrderCode);
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Payment entity missing");
+        }
+        if (order.getStatus() == com.nchuy099.SmartPharma.order.domain.enums.OrderStatus.CANCELLED) {
+            log.warn("Ignoring payment webhook for cancelled order {}", finalOrderCode);
+            return Map.of("success", false, "message", "Order already cancelled");
         }
 
         // 4. Verify amount (optional but safer)

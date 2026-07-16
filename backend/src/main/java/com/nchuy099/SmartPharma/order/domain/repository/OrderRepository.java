@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,6 +17,8 @@ import org.springframework.stereotype.Repository;
 import com.nchuy099.SmartPharma.cart.entity.CartItemEntity;
 import com.nchuy099.SmartPharma.order.domain.entity.OrderEntity;
 import com.nchuy099.SmartPharma.order.domain.enums.OrderStatus;
+
+import jakarta.persistence.LockModeType;
 
 @Repository
 public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
@@ -89,6 +92,32 @@ public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
     List<OrderEntity> findAllWithItemsAndPayment(@Param("ids") List<UUID> ids);
 
     Optional<OrderEntity> findByOrderCode(String orderCode);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select o from OrderEntity o
+            left join fetch o.payment
+            where o.id = :id
+            """)
+    Optional<OrderEntity> findByIdForUpdate(@Param("id") UUID id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select o from OrderEntity o
+            left join fetch o.payment
+            where o.orderCode = :orderCode
+            """)
+    Optional<OrderEntity> findByOrderCodeForUpdate(@Param("orderCode") String orderCode);
+
+    @Query("""
+            select o.id
+            from OrderEntity o
+            where o.status = :status
+              and o.createdAt <= :cutoff
+            order by o.createdAt asc, o.id asc
+            """)
+    List<UUID> findIdsByStatusAndCreatedAtBefore(@Param("status") OrderStatus status,
+                                                 @Param("cutoff") Instant cutoff);
 
     @Query("""
             select o from OrderEntity o
