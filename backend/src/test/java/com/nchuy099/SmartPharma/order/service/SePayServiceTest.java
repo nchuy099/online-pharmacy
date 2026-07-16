@@ -66,7 +66,7 @@ class SePayServiceTest {
         order.setPayment(payment);
 
         when(paymentRepository.findByExternalTransactionId("123")).thenReturn(Optional.empty());
-        when(orderRepository.findByOrderCode(orderCode)).thenReturn(Optional.of(order));
+        when(orderRepository.findByOrderCodeForUpdate(orderCode)).thenReturn(Optional.of(order));
         when(orderRepository.save(order)).thenReturn(order);
         when(paymentRepository.save(payment)).thenReturn(payment);
 
@@ -100,7 +100,7 @@ class SePayServiceTest {
         order.setPayment(payment);
 
         when(paymentRepository.findByExternalTransactionId("123")).thenReturn(Optional.empty());
-        when(orderRepository.findByOrderCode(orderCode)).thenReturn(Optional.of(order));
+        when(orderRepository.findByOrderCodeForUpdate(orderCode)).thenReturn(Optional.of(order));
         when(orderRepository.save(order)).thenReturn(order);
         when(paymentRepository.save(payment)).thenReturn(payment);
 
