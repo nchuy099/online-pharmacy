@@ -51,6 +51,24 @@ export const OrderApi = {
         }
     },
 
+    createReturnEvidenceUploadUrl: async (orderId: string): Promise<{ uploadUrl: string; fileUrl: string }> => {
+        const res = await axios.post<ApiResponse<{ uploadUrl: string; fileUrl: string }>>(
+            `/orders/${orderId}/return-requests/images/upload-url/create`
+        );
+        if (!res.data.success) {
+            throw new Error(res.data.error || "Create return evidence upload URL failed");
+        }
+        return res.data.data;
+    },
+
+    createReturnRequest: async (orderId: string, data: { reason: string; imageUrls?: string[] }): Promise<RawOrderResp> => {
+        const res = await axios.post<ApiResponse<RawOrderResp>>(`/orders/${orderId}/return-requests`, data);
+        if (!res.data.success) {
+            throw new Error(res.data.error || "Create return request failed");
+        }
+        return res.data.data;
+    },
+
     updateDeliveryInfo: async (orderId: string, data: UpdateOrderDeliveryInfoReqDTO): Promise<void> => {
         const res = await axios.put<ApiResponse<void>>(`/orders/${orderId}/delivery`, data);
         if (!res.data.success) {

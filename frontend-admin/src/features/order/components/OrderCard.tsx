@@ -15,6 +15,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
                 </div>
                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                     order.status === 'DELIVERED' ? 'bg-green-100 text-green-700' :
+                    order.status === 'RETURN_REQUESTED' ? 'bg-orange-100 text-orange-700' :
+                    order.status === 'RETURNED' ? 'bg-slate-100 text-slate-700' :
                     order.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
                     order.status === 'SHIPPING' ? 'bg-purple-100 text-purple-700' :
                     order.status === 'PENDING_PAYMENT' ? 'bg-amber-100 text-amber-700' :
@@ -26,6 +28,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
                      (order.status as string) === 'PROCESSING' ? 'Đang xử lý' :
                      order.status === 'SHIPPING' ? 'Đang giao' :
                      order.status === 'DELIVERED' ? 'Đã giao' :
+                     order.status === 'RETURN_REQUESTED' ? 'Yêu cầu trả hàng' :
+                     order.status === 'RETURNED' ? 'Đã trả hàng' :
                      order.status === 'CANCELLED' ? 'Đã hủy' : order.status}
                 </span>
             </div>

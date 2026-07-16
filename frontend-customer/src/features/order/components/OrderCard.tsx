@@ -15,6 +15,8 @@ const getStatusText = (status: OrderStatus) => {
         PROCESSING: "Đang xử lý",
         SHIPPING: "Đang giao",
         DELIVERED: "Đã giao",
+        RETURN_REQUESTED: "Đang yêu cầu trả hàng",
+        RETURNED: "Đã trả hàng",
         CANCELLED: "Đã hủy"
     };
     return statusMap[status] || status;
@@ -27,6 +29,8 @@ const getStatusStyles = (status: OrderStatus) => {
         PROCESSING: "bg-indigo-50 text-indigo-600 border-indigo-200",
         SHIPPING: "bg-purple-50 text-purple-600 border-purple-200",
         DELIVERED: "bg-emerald-50 text-emerald-600 border-emerald-200",
+        RETURN_REQUESTED: "bg-orange-50 text-orange-600 border-orange-200",
+        RETURNED: "bg-slate-50 text-slate-600 border-slate-200",
         CANCELLED: "bg-red-50 text-red-600 border-red-200"
     };
     return styleMap[status] || "bg-gray-50 text-gray-600 border-gray-200";
@@ -35,8 +39,12 @@ const getStatusStyles = (status: OrderStatus) => {
 const getPaymentStatusText = (status: PaymentStatus) => {
     const statusMap: Record<string, string> = {
         INITIATED: "Chờ thanh toán",
+        PROCESSING: "Đang xử lý",
+        PARTIAL: "Thanh toán một phần",
         COMPLETED: "Đã thanh toán",
-        FAILED: "Thất bại"
+        FAILED: "Thất bại",
+        CANCELLED: "Đã hủy",
+        REFUNDED: "Đã hoàn tiền"
     };
     return statusMap[status] || status;
 };
@@ -44,8 +52,12 @@ const getPaymentStatusText = (status: PaymentStatus) => {
 const getPaymentStatusStyles = (status: PaymentStatus) => {
     const styleMap: Record<string, string> = {
         INITIATED: "text-yellow-600 bg-yellow-50 px-2 py-1 rounded-md",
+        PROCESSING: "text-blue-600 bg-blue-50 px-2 py-1 rounded-md",
+        PARTIAL: "text-amber-600 bg-amber-50 px-2 py-1 rounded-md",
         COMPLETED: "text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md",
-        FAILED: "text-red-600 bg-red-50 px-2 py-1 rounded-md"
+        FAILED: "text-red-600 bg-red-50 px-2 py-1 rounded-md",
+        CANCELLED: "text-red-600 bg-red-50 px-2 py-1 rounded-md",
+        REFUNDED: "text-slate-600 bg-slate-50 px-2 py-1 rounded-md"
     };
     return styleMap[status] || "text-gray-600 bg-gray-50 px-2 py-1 rounded-md";
 };

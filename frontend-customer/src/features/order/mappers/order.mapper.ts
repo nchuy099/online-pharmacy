@@ -62,6 +62,18 @@ export interface RawOrderResp {
     note?: string;
     createdAt: string;
     expectedDeliveryTime?: number;
+    deliveredAt?: string;
+    returnCompletedAt?: string;
+    returnRequest?: {
+        id?: string;
+        status?: "PENDING" | "APPROVED" | "REJECTED";
+        reason?: string;
+        reviewNote?: string | null;
+        refundAmount?: number;
+        requestedAt?: string;
+        reviewedAt?: string | null;
+        imageUrls?: string[];
+    } | null;
     shipment?: {
         order_code: string;
         status: string;
@@ -163,6 +175,18 @@ export const mapOrderDetailsResponse = (resp: RawOrderResp): Order => {
         note: resp.note,
         createdAt: resp.createdAt,
         expectedDeliveryTime: resp.expectedDeliveryTime,
+        deliveredAt: resp.deliveredAt,
+        returnCompletedAt: resp.returnCompletedAt,
+        returnRequest: resp.returnRequest ? {
+            id: resp.returnRequest.id || "",
+            status: resp.returnRequest.status || "PENDING",
+            reason: resp.returnRequest.reason || "",
+            reviewNote: resp.returnRequest.reviewNote,
+            refundAmount: resp.returnRequest.refundAmount || 0,
+            requestedAt: resp.returnRequest.requestedAt,
+            reviewedAt: resp.returnRequest.reviewedAt,
+            imageUrls: resp.returnRequest.imageUrls || [],
+        } : null,
         shipment: resp.shipment ? {
             orderCode: resp.shipment.order_code,
             status: resp.shipment.status,

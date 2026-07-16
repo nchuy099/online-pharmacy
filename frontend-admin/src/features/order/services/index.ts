@@ -32,6 +32,16 @@ const mapApiOrder = (item: OrderResponse): Order => ({
     expectedDeliveryTime: item.expectedDeliveryTime,
     note: item.note,
     status: (item.status || 'PENDING') as OrderStatus,
+    returnRequest: item.returnRequest ? {
+        id: item.returnRequest.id || '',
+        status: item.returnRequest.status || 'PENDING',
+        reason: item.returnRequest.reason || '',
+        reviewNote: item.returnRequest.reviewNote,
+        refundAmount: item.returnRequest.refundAmount || 0,
+        requestedAt: item.returnRequest.requestedAt,
+        reviewedAt: item.returnRequest.reviewedAt,
+        imageUrls: item.returnRequest.imageUrls || [],
+    } : null,
     totalItems: item.totalItems,
 });
 
@@ -99,6 +109,18 @@ const orderService = {
 
     async shipOrder(id: string): Promise<OrderDetails> {
         const res = await orderApi.shipOrder(id);
+        const data = (res.data as any) ?? (res as any).result;
+        return mapApiOrderDetails(data);
+    },
+
+    async approveReturnRequest(id: string, reviewNote?: string): Promise<OrderDetails> {
+        const res = await orderApi.approveReturnRequest(id, reviewNote);
+        const data = (res.data as any) ?? (res as any).result;
+        return mapApiOrderDetails(data);
+    },
+
+    async rejectReturnRequest(id: string, reviewNote?: string): Promise<OrderDetails> {
+        const res = await orderApi.rejectReturnRequest(id, reviewNote);
         const data = (res.data as any) ?? (res as any).result;
         return mapApiOrderDetails(data);
     },

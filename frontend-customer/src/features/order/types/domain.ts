@@ -16,6 +16,17 @@ export interface PaymentInfo {
     status: PaymentStatus;
 }
 
+export interface OrderReturnRequest {
+    id: string;
+    status: "PENDING" | "APPROVED" | "REJECTED";
+    reason: string;
+    reviewNote?: string | null;
+    refundAmount: number;
+    requestedAt?: string;
+    reviewedAt?: string | null;
+    imageUrls: string[];
+}
+
 export interface OrderItem {
     id: string;
     productId: string;
@@ -67,6 +78,9 @@ export interface Order {
     note?: string;
     createdAt: string;
     expectedDeliveryTime?: number;
+    deliveredAt?: string;
+    returnCompletedAt?: string;
+    returnRequest?: OrderReturnRequest | null;
     shipment?: ShipmentInfo;
 }
 

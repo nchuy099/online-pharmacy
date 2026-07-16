@@ -37,6 +37,7 @@ export interface OrderResponse {
     expectedDeliveryTime?: number;
     note?: string;
     status: string;
+    returnRequest?: OrderReturnRequestResponse | null;
     totalItems: number;
 }
 
@@ -44,6 +45,17 @@ export interface OrderPaymentResponse {
     method: string;
     amount: number;
     status: string;
+}
+
+export interface OrderReturnRequestResponse {
+    id?: string;
+    status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+    reason?: string;
+    reviewNote?: string | null;
+    refundAmount?: number;
+    requestedAt?: string;
+    reviewedAt?: string | null;
+    imageUrls?: string[];
 }
 
 export interface OrderAddressResponse {

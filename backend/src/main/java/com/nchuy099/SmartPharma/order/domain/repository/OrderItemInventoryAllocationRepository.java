@@ -15,6 +15,7 @@ public interface OrderItemInventoryAllocationRepository extends JpaRepository<Or
         SELECT a
         FROM OrderItemInventoryAllocationEntity a
         JOIN FETCH a.orderItem oi
+        JOIN FETCH oi.variant oiv
         JOIN FETCH a.lot l
         JOIN FETCH l.variant v
         WHERE oi.order.id = :orderId

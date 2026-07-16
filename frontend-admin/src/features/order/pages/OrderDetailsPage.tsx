@@ -53,6 +53,8 @@ const OrderDetailsPage: React.FC = () => {
     const [isConfirming, setIsConfirming] = React.useState(false);
     const [isShipping, setIsShipping] = React.useState(false);
     const [isShipConfirmOpen, setIsShipConfirmOpen] = React.useState(false);
+    const [isReviewingReturn, setIsReviewingReturn] = React.useState(false);
+    const [returnReviewNote, setReturnReviewNote] = React.useState('');
 
     const handleConfirm = async () => {
         if (!id) return;
@@ -78,6 +80,34 @@ const OrderDetailsPage: React.FC = () => {
             alert('Lỗi tạo đơn giao hàng');
         } finally {
             setIsShipping(false);
+        }
+    };
+
+    const handleApproveReturn = async () => {
+        if (!id) return;
+        try {
+            setIsReviewingReturn(true);
+            await orderService.approveReturnRequest(id, returnReviewNote.trim() || undefined);
+            setReturnReviewNote('');
+            await refresh();
+        } catch (err) {
+            alert('Lỗi duyệt yêu cầu trả hàng');
+        } finally {
+            setIsReviewingReturn(false);
+        }
+    };
+
+    const handleRejectReturn = async () => {
+        if (!id) return;
+        try {
+            setIsReviewingReturn(true);
+            await orderService.rejectReturnRequest(id, returnReviewNote.trim() || undefined);
+            setReturnReviewNote('');
+            await refresh();
+        } catch (err) {
+            alert('Lỗi từ chối yêu cầu trả hàng');
+        } finally {
+            setIsReviewingReturn(false);
         }
     };
 
@@ -170,6 +200,77 @@ const OrderDetailsPage: React.FC = () => {
                 </div>
                 <div className="space-y-6">
                     <PaymentCard payment={order.payment} />
+                    {order.returnRequest && (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900">Yêu cầu trả hàng</h3>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Hoàn tiền hàng: {order.returnRequest.refundAmount.toLocaleString('vi-VN')} đ
+                                    </p>
+                                </div>
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ${
+                                    order.returnRequest.status === 'PENDING' ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                                    order.returnRequest.status === 'APPROVED' ? 'bg-green-100 text-green-700 border-green-200' :
+                                        'bg-red-100 text-red-700 border-red-200'
+                                }`}>
+                                    {order.returnRequest.status === 'PENDING' ? 'Chờ duyệt' :
+                                     order.returnRequest.status === 'APPROVED' ? 'Đã duyệt' : 'Đã từ chối'}
+                                </span>
+                            </div>
+
+                            <div className="space-y-3 text-sm">
+                                <div>
+                                    <p className="text-gray-500">Lý do khách gửi</p>
+                                    <p className="font-medium text-gray-900 whitespace-pre-wrap">{order.returnRequest.reason}</p>
+                                </div>
+                                {order.returnRequest.reviewNote && (
+                                    <div>
+                                        <p className="text-gray-500">Ghi chú xử lý</p>
+                                        <p className="font-medium text-gray-900 whitespace-pre-wrap">{order.returnRequest.reviewNote}</p>
+                                    </div>
+                                )}
+                                {order.returnRequest.imageUrls.length > 0 && (
+                                    <div>
+                                        <p className="text-gray-500 mb-2">Ảnh bằng chứng</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {order.returnRequest.imageUrls.map((url) => (
+                                                <a key={url} href={url} target="_blank" rel="noreferrer" className="block h-16 w-16 rounded-lg overflow-hidden border border-gray-200">
+                                                    <img src={url} alt="Bằng chứng trả hàng" className="h-full w-full object-cover" />
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {order.returnRequest.status === 'PENDING' && (
+                                    <div className="space-y-3 pt-2">
+                                        <textarea
+                                            value={returnReviewNote}
+                                            onChange={(event) => setReturnReviewNote(event.target.value)}
+                                            className="w-full min-h-[88px] rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                                            placeholder="Ghi chú xử lý cho khách (tùy chọn)"
+                                        />
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                onClick={handleRejectReturn}
+                                                disabled={isReviewingReturn}
+                                                className="px-3 py-2 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm font-semibold hover:bg-red-100 disabled:opacity-50"
+                                            >
+                                                Từ chối
+                                            </button>
+                                            <button
+                                                onClick={handleApproveReturn}
+                                                disabled={isReviewingReturn}
+                                                className="px-3 py-2 rounded-lg border border-green-200 bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50"
+                                            >
+                                                Duyệt trả hàng
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                         <div className="flex items-start justify-between gap-3">
                             <div>

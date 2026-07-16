@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 
 import com.nchuy099.SmartPharma.cart.entity.CartItemEntity;
 import com.nchuy099.SmartPharma.order.domain.entity.OrderEntity;
+import com.nchuy099.SmartPharma.order.domain.entity.OrderReturnRequestEntity;
+import com.nchuy099.SmartPharma.order.domain.repository.OrderReturnRequestRepository;
 import com.nchuy099.SmartPharma.order.dto.response.OrderResponse;
 import com.nchuy099.SmartPharma.order.dto.response.OrderResponse.OrderItemDto;
 import com.nchuy099.SmartPharma.order.dto.response.PreviewResponse;
@@ -23,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class OrderMapper {
 
         private final PaymentQrService paymentQrService;
+        private final OrderReturnRequestRepository orderReturnRequestRepository;
 
         public PreviewResponse toBuyNowPreview(ProductVariantEntity variant, int qty, BigDecimal amount) {
                 return toBuyNowPreview(variant, qty, amount, variant.getSalePrice());
@@ -73,10 +76,24 @@ public class OrderMapper {
         }
 
         public OrderResponse toOrderResponse(OrderEntity order) {
-                return toOrderResponse(order, (AddressEntity) null);
+                OrderReturnRequestEntity returnRequest = order.getId() != null
+                                ? orderReturnRequestRepository.findFirstByOrderIdOrderByCreatedAtDescIdDesc(order.getId()).orElse(null)
+                                : null;
+                return toOrderResponse(order, null, returnRequest);
         }
 
         public OrderResponse toOrderResponse(OrderEntity order, AddressEntity address) {
+                OrderReturnRequestEntity returnRequest = order.getId() != null
+                                ? orderReturnRequestRepository.findFirstByOrderIdOrderByCreatedAtDescIdDesc(order.getId()).orElse(null)
+                                : null;
+                return toOrderResponse(order, address, returnRequest);
+        }
+
+        public OrderResponse toOrderResponse(OrderEntity order, OrderReturnRequestEntity returnRequest) {
+                return toOrderResponse(order, null, returnRequest);
+        }
+
+        public OrderResponse toOrderResponse(OrderEntity order, AddressEntity address, OrderReturnRequestEntity returnRequest) {
                 var payment = order.getPayment();
                 return OrderResponse.builder()
                                 .id(order.getId().toString())
@@ -120,6 +137,8 @@ public class OrderMapper {
                                                 : null)
                                 .expectedDeliveryTime(order.getExpectedDeliveryTime())
                                 .deliveredAt(order.getDeliveredAt())
+                                .returnCompletedAt(order.getReturnCompletedAt())
+                                .returnRequest(toReturnRequestDto(returnRequest))
                                 .items(order.getItems().stream()
                                                 .map(i -> {
                                                         var itemDto = OrderItemDto.builder()
@@ -156,6 +175,26 @@ public class OrderMapper {
                                                         return itemDto;
                                                 })
                                                 .toList())
+                                .build();
+        }
+
+        private OrderResponse.ReturnRequestDto toReturnRequestDto(OrderReturnRequestEntity returnRequest) {
+                if (returnRequest == null) {
+                        return null;
+                }
+                return OrderResponse.ReturnRequestDto.builder()
+                                .id(returnRequest.getId() != null ? returnRequest.getId().toString() : null)
+                                .status(returnRequest.getStatus() != null ? returnRequest.getStatus().name() : null)
+                                .reason(returnRequest.getReason())
+                                .reviewNote(returnRequest.getReviewNote())
+                                .refundAmount(returnRequest.getRefundAmount())
+                                .requestedAt(returnRequest.getCreatedAt())
+                                .reviewedAt(returnRequest.getReviewedAt())
+                                .imageUrls(returnRequest.getImages() != null
+                                                ? returnRequest.getImages().stream()
+                                                                .map(image -> image.getImageUrl())
+                                                                .toList()
+                                                : List.of())
                                 .build();
         }
 

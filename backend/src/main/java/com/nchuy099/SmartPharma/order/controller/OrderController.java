@@ -17,10 +17,13 @@ import com.nchuy099.SmartPharma.order.application.command.TrackOrderUseCase;
 import com.nchuy099.SmartPharma.order.application.create.CreateOrderUseCase;
 import com.nchuy099.SmartPharma.order.application.preview.OrderPreviewUseCase;
 import com.nchuy099.SmartPharma.order.application.query.OrderQueryService;
+import com.nchuy099.SmartPharma.order.application.returnrequest.OrderReturnRequestService;
+import com.nchuy099.SmartPharma.order.dto.request.CreateOrderReturnRequest;
 import com.nchuy099.SmartPharma.order.dto.request.OrderCancelRequest;
 import com.nchuy099.SmartPharma.order.dto.request.OrderCreateRequest;
 import com.nchuy099.SmartPharma.order.dto.request.OrderPreviewRequest;
 import com.nchuy099.SmartPharma.order.dto.response.OrderPageResponse;
+import com.nchuy099.SmartPharma.order.dto.response.OrderReturnEvidenceUploadUrlResponse;
 import com.nchuy099.SmartPharma.order.dto.response.OrderResponse;
 import com.nchuy099.SmartPharma.order.dto.response.PreviewResponse;
 
@@ -38,6 +41,7 @@ public class OrderController {
     private final OrderQueryService orderQueryService;
     private final CancelOrderUseCase cancelOrderUseCase;
     private final TrackOrderUseCase trackOrderUseCase;
+    private final OrderReturnRequestService orderReturnRequestService;
 
     @PostMapping("/create")
     @Operation(summary = "Create order", description = "Consumes a one-time checkout quote and creates the order if the quote is still valid.")
@@ -71,6 +75,20 @@ public class OrderController {
     public void cancelOrder(@PathVariable(name = "id") String id, @RequestBody OrderCancelRequest req) {
         log.info("Cancel order request received with id: {}", id);
         cancelOrderUseCase.cancel(UUID.fromString(id), req);
+    }
+
+    @PostMapping("/{id}/return-requests")
+    public OrderResponse createReturnRequest(
+            @PathVariable(name = "id") String id,
+            @RequestBody @jakarta.validation.Valid CreateOrderReturnRequest req) {
+        log.info("Return order request received with id: {}", id);
+        return orderReturnRequestService.create(UUID.fromString(id), req);
+    }
+
+    @PostMapping("/{id}/return-requests/images/upload-url/create")
+    public OrderReturnEvidenceUploadUrlResponse createReturnEvidenceUploadUrl(@PathVariable(name = "id") String id) {
+        log.info("Create return evidence upload url request received with id: {}", id);
+        return orderReturnRequestService.createEvidenceUploadUrl(UUID.fromString(id));
     }
 
     @GetMapping("/tracking/{ghnOrderCode}")

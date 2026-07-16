@@ -3,7 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useOrderDetails } from "../hooks/useOrderDetails";
 import { useUpdateDeliveryInfo } from "../hooks/useUpdateDeliveryInfo";
 import { useCancelOrder } from "../hooks/useCancelOrder";
-import { FaArrowLeft, FaFileAlt, FaCheckCircle, FaClock, FaTruck, FaTimesCircle, FaEdit, FaSync, FaMapMarkerAlt } from "react-icons/fa";
+import { useCreateReturnRequest } from "../hooks/useCreateReturnRequest";
+import { FaArrowLeft, FaFileAlt, FaCheckCircle, FaClock, FaTruck, FaTimesCircle, FaEdit, FaSync, FaMapMarkerAlt, FaUndo } from "react-icons/fa";
 import { useAddressList } from "../hooks/useAddressQuery";
 import { useCreateAddress, useUpdateAddress, useDeleteAddress } from "../hooks/useAddressMutation";
 import { AddressListModal } from "../components/AddressListModal";
@@ -36,14 +37,19 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
     PROCESSING: { label: "Đang xử lý", icon: FaClock, color: "text-indigo-600", bg: "bg-indigo-50", border: "border-indigo-200" },
     SHIPPING: { label: "Đang giao hàng", icon: FaTruck, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200" },
     DELIVERED: { label: "Đã giao hàng", icon: FaCheckCircle, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
+    RETURN_REQUESTED: { label: "Đang yêu cầu trả hàng", icon: FaUndo, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200" },
+    RETURNED: { label: "Đã trả hàng", icon: FaUndo, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-200" },
     CANCELLED: { label: "Đã hủy", icon: FaTimesCircle, color: "text-red-600", bg: "bg-red-50", border: "border-red-200" },
     CANCELED: { label: "Đã hủy", icon: FaTimesCircle, color: "text-red-600", bg: "bg-red-50", border: "border-red-200" }
 };
 
 const PAYMENT_STATUS_CONFIG: Record<string, PaymentStatusInfo> = {
     INITIATED: { label: "Chờ thanh toán", color: "text-yellow-600" },
+    PARTIAL: { label: "Thanh toán một phần", color: "text-amber-600" },
     COMPLETED: { label: "Đã thanh toán", color: "text-emerald-600" },
-    FAILED: { label: "Thanh toán thất bại", color: "text-red-600" }
+    FAILED: { label: "Thanh toán thất bại", color: "text-red-600" },
+    CANCELLED: { label: "Đã hủy", color: "text-red-600" },
+    REFUNDED: { label: "Đã hoàn tiền", color: "text-slate-600" }
 };
 
 export const OrderDetailsPage = () => {
@@ -52,15 +58,20 @@ export const OrderDetailsPage = () => {
     const { data: order, isLoading, isError, refetch } = useOrderDetails(id);
     const updateDeliveryInfoMutation = useUpdateDeliveryInfo();
     const cancelOrderMutation = useCancelOrder();
+    const createReturnRequestMutation = useCreateReturnRequest();
     const [isUpdateOpen, setIsUpdateOpen] = useState(false);
     const [isCancelOpen, setIsCancelOpen] = useState(false);
+    const [isReturnOpen, setIsReturnOpen] = useState(false);
     const [isAddressListOpen, setIsAddressListOpen] = useState(false);
     const [isAddressFormOpen, setIsAddressFormOpen] = useState(false);
     const [isShipmentLogsOpen, setIsShipmentLogsOpen] = useState(false);
 
     const [cancelReason, setCancelReason] = useState("");
+    const [returnReason, setReturnReason] = useState("");
+    const [returnFiles, setReturnFiles] = useState<File[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+    const [isReturning, setIsReturning] = useState(false);
     const [actionError, setActionError] = useState<string | null>(null);
 
     const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
@@ -106,6 +117,11 @@ export const OrderDetailsPage = () => {
     const paymentStatusConfig = PAYMENT_STATUS_CONFIG[order.payment?.status as string] || PAYMENT_STATUS_CONFIG.INITIATED;
     const canUpdate = order.status === "PENDING";
     const canCancel = order.status === "PENDING";
+    const deliveredAtTime = order.deliveredAt ? new Date(order.deliveredAt).getTime() : 0;
+    const canReturn = order.status === "DELIVERED"
+        && !order.returnRequest
+        && deliveredAtTime > 0
+        && Date.now() <= deliveredAtTime + 7 * 24 * 60 * 60 * 1000;
 
     const amountFormatted = new Intl.NumberFormat("vi-VN", {
         style: "currency",
@@ -218,6 +234,43 @@ export const OrderDetailsPage = () => {
         }
     };
 
+    const openReturnModal = () => {
+        setActionError(null);
+        setReturnReason("");
+        setReturnFiles([]);
+        setIsReturnOpen(true);
+    };
+
+    const handleReturnRequest = async () => {
+        if (!id || isReturning) {
+            return;
+        }
+        if (!returnReason.trim()) {
+            setActionError("Vui lòng nhập lý do trả hàng.");
+            return;
+        }
+        if (returnFiles.length > 5) {
+            setActionError("Chỉ được tải lên tối đa 5 ảnh bằng chứng.");
+            return;
+        }
+
+        try {
+            setIsReturning(true);
+            setActionError(null);
+            await createReturnRequestMutation.mutateAsync({
+                orderId: id,
+                reason: returnReason.trim(),
+                files: returnFiles,
+            });
+            await refetch();
+            setIsReturnOpen(false);
+        } catch {
+            setActionError("Không thể gửi yêu cầu trả hàng. Vui lòng thử lại.");
+        } finally {
+            setIsReturning(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#F1F5F9] py-8 px-6">
             <div className="max-w-7xl mx-auto">
@@ -260,7 +313,7 @@ export const OrderDetailsPage = () => {
                 </div>
 
                 {/* Action Buttons */}
-                {(canUpdate || canCancel) && (
+                {(canUpdate || canCancel || canReturn) && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                         {canUpdate && (
                             <button
@@ -280,6 +333,16 @@ export const OrderDetailsPage = () => {
                             >
                                 <FaTimesCircle />
                                 Hủy đơn hàng
+                            </button>
+                        )}
+                        {canReturn && (
+                            <button
+                                onClick={openReturnModal}
+                                disabled={isReturning}
+                                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-black text-[13px] bg-white border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <FaUndo />
+                                Yêu cầu trả hàng
                             </button>
                         )}
                         {actionError && (
@@ -323,6 +386,52 @@ export const OrderDetailsPage = () => {
                                 Ghi chú
                             </h2>
                             <p className="text-gray-600 leading-relaxed font-medium">{order.note}</p>
+                        </div>
+                    )}
+
+                    {order.returnRequest && (
+                        <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-3">
+                                <FaUndo className="text-orange-500" />
+                                Yêu cầu trả hàng
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <p className="text-gray-400 font-bold uppercase text-[11px] tracking-widest">Trạng thái</p>
+                                    <p className="font-bold text-gray-900 mt-1">
+                                        {order.returnRequest.status === "PENDING"
+                                            ? "Chờ duyệt"
+                                            : order.returnRequest.status === "APPROVED"
+                                                ? "Đã duyệt"
+                                                : "Đã từ chối"}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-400 font-bold uppercase text-[11px] tracking-widest">Số tiền hoàn dự kiến</p>
+                                    <p className="font-bold text-gray-900 mt-1">
+                                        {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(order.returnRequest.refundAmount)}
+                                    </p>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <p className="text-gray-400 font-bold uppercase text-[11px] tracking-widest">Lý do</p>
+                                    <p className="text-gray-700 mt-1 leading-relaxed">{order.returnRequest.reason}</p>
+                                </div>
+                                {order.returnRequest.reviewNote && (
+                                    <div className="md:col-span-2">
+                                        <p className="text-gray-400 font-bold uppercase text-[11px] tracking-widest">Phản hồi từ nhà thuốc</p>
+                                        <p className="text-gray-700 mt-1 leading-relaxed">{order.returnRequest.reviewNote}</p>
+                                    </div>
+                                )}
+                                {order.returnRequest.imageUrls.length > 0 && (
+                                    <div className="md:col-span-2 flex flex-wrap gap-3">
+                                        {order.returnRequest.imageUrls.map((url) => (
+                                            <a key={url} href={url} target="_blank" rel="noreferrer" className="block w-20 h-20 rounded-2xl overflow-hidden border border-gray-100">
+                                                <img src={url} alt="Bằng chứng trả hàng" className="w-full h-full object-cover" />
+                                            </a>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -447,6 +556,66 @@ export const OrderDetailsPage = () => {
                             </button>
                             <button
                                 onClick={() => setIsCancelOpen(false)}
+                                className="w-full px-6 py-4 rounded-2xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-all"
+                            >
+                                Quay lại
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {isReturnOpen && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-6 z-50 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col items-center text-center mb-6">
+                            <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center text-orange-500 text-3xl mb-4">
+                                <FaUndo />
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900">Yêu cầu trả hàng</h3>
+                            <p className="text-gray-500 mt-2">Nhà thuốc sẽ kiểm tra yêu cầu trước khi xác nhận hoàn tiền và nhận lại hàng.</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Lý do trả hàng</label>
+                                <textarea
+                                    value={returnReason}
+                                    onChange={(event) => setReturnReason(event.target.value)}
+                                    className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 focus:ring-4 focus:ring-orange-50 outline-none resize-none min-h-[120px] transition-all"
+                                    placeholder="Mô tả tình trạng sản phẩm hoặc lý do bạn muốn trả hàng..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Ảnh bằng chứng (tùy chọn, tối đa 5 ảnh)</label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={(event) => setReturnFiles(Array.from(event.target.files || []).slice(0, 5))}
+                                    className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-xl file:border-0 file:bg-orange-50 file:px-4 file:py-2 file:font-bold file:text-orange-600 hover:file:bg-orange-100"
+                                />
+                                {returnFiles.length > 0 && (
+                                    <p className="mt-2 text-xs font-semibold text-gray-500">{returnFiles.length} ảnh đã chọn</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {actionError && (
+                            <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-2xl text-center">
+                                {actionError}
+                            </div>
+                        )}
+
+                        <div className="flex flex-col gap-3 mt-8">
+                            <button
+                                onClick={handleReturnRequest}
+                                disabled={isReturning}
+                                className="w-full px-6 py-4 rounded-2xl bg-orange-500 text-white font-black hover:bg-orange-600 transition-all shadow-lg shadow-orange-100 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                {isReturning ? "Đang gửi..." : "Gửi yêu cầu trả hàng"}
+                            </button>
+                            <button
+                                onClick={() => setIsReturnOpen(false)}
                                 className="w-full px-6 py-4 rounded-2xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-all"
                             >
                                 Quay lại

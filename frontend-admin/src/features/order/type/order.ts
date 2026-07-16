@@ -1,6 +1,6 @@
 import { Pagination } from '../../../shared/types';
 
-export type OrderStatus = 'PENDING' | 'PENDING_PAYMENT' | 'PROCESSING' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED';
+export type OrderStatus = 'PENDING' | 'PENDING_PAYMENT' | 'PROCESSING' | 'SHIPPING' | 'DELIVERED' | 'RETURN_REQUESTED' | 'RETURNED' | 'CANCELLED';
 
 export interface OrderItem {
     id: string;

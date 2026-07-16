@@ -20,7 +20,10 @@ const PaymentCard: React.FC<PaymentCardProps> = ({ payment }) => {
             case 'INITIATED':
                 return 'Chờ thanh toán';
             case 'PAID':
+            case 'COMPLETED':
                 return 'Đã thanh toán';
+            case 'PARTIAL':
+                return 'Thanh toán một phần';
             case 'PENDING':
                 return 'Chờ thanh toán';
             case 'REFUNDED':
@@ -53,7 +56,7 @@ const PaymentCard: React.FC<PaymentCardProps> = ({ payment }) => {
 
                 <div className="flex justify-between items-center">
                     <span className="text-gray-500">Trạng thái:</span>
-                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${payment.status?.toUpperCase() === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
+                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${payment.status?.toUpperCase() === 'PAID' || payment.status?.toUpperCase() === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
                         payment.status?.toUpperCase() === 'REFUNDED' ? 'bg-orange-100 text-orange-700' :
                             payment.status?.toUpperCase() === 'FAILED' || payment.status?.toUpperCase() === 'CANCELLED'
                                 ? 'bg-red-100 text-red-700'

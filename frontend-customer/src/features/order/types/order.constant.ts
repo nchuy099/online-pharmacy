@@ -5,6 +5,8 @@ export const ORDER_STATUS = {
     PROCESSING: "PROCESSING",
     SHIPPING: "SHIPPING",
     DELIVERED: "DELIVERED",
+    RETURN_REQUESTED: "RETURN_REQUESTED",
+    RETURNED: "RETURNED",
     CANCELLED: "CANCELLED"
 } as const
 
@@ -21,8 +23,12 @@ export type OrderMode = typeof ORDER_MODE[keyof typeof ORDER_MODE]
 // PAYMENT_STATUS
 export const PAYMENT_STATUS = {
     INITIATED: "INITIATED",
+    PROCESSING: "PROCESSING",
+    PARTIAL: "PARTIAL",
     COMPLETED: "COMPLETED",
-    FAILED: "FAILED"
+    FAILED: "FAILED",
+    CANCELLED: "CANCELLED",
+    REFUNDED: "REFUNDED"
 } as const
 
 export type PaymentStatus = typeof PAYMENT_STATUS[keyof typeof PAYMENT_STATUS]

@@ -60,6 +60,7 @@ public class OrderEntity extends AbstractEntity {
     Integer ghnServiceId;
     Long expectedDeliveryTime;
     java.time.Instant deliveredAt;
+    java.time.Instant returnCompletedAt;
 
     BigDecimal itemTotalAmount;
 

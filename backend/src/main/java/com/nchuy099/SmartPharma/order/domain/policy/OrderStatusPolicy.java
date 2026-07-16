@@ -18,7 +18,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class OrderStatusPolicy {
 
-    private static final Set<OrderStatus> TERMINAL_STATUSES = EnumSet.of(OrderStatus.DELIVERED, OrderStatus.CANCELLED);
+    private static final Set<OrderStatus> CLOSED_STATUSES = EnumSet.of(OrderStatus.CANCELLED, OrderStatus.RETURNED);
+    private static final Set<OrderStatus> GHN_SYNC_FINAL_STATUSES = EnumSet.of(
+            OrderStatus.DELIVERED,
+            OrderStatus.CANCELLED,
+            OrderStatus.RETURN_REQUESTED,
+            OrderStatus.RETURNED);
 
     public void confirm(OrderEntity order) {
         transition(order, EnumSet.of(OrderStatus.PENDING), OrderStatus.PROCESSING, "confirm");
@@ -34,6 +39,18 @@ public class OrderStatusPolicy {
 
     public void cancel(OrderEntity order) {
         transition(order, EnumSet.of(OrderStatus.PENDING, OrderStatus.PENDING_PAYMENT), OrderStatus.CANCELLED, "cancel");
+    }
+
+    public void requestReturn(OrderEntity order) {
+        transition(order, EnumSet.of(OrderStatus.DELIVERED), OrderStatus.RETURN_REQUESTED, "request return");
+    }
+
+    public void approveReturn(OrderEntity order) {
+        transition(order, EnumSet.of(OrderStatus.RETURN_REQUESTED), OrderStatus.RETURNED, "approve return");
+    }
+
+    public void rejectReturn(OrderEntity order) {
+        transition(order, EnumSet.of(OrderStatus.RETURN_REQUESTED), OrderStatus.DELIVERED, "reject return");
     }
 
     public void markPartialPayment(OrderEntity order) {
@@ -57,7 +74,7 @@ public class OrderStatusPolicy {
         }
 
         OrderStatus currentStatus = order.getStatus();
-        if (currentStatus == null || TERMINAL_STATUSES.contains(currentStatus) || targetStatus == currentStatus) {
+        if (currentStatus == null || GHN_SYNC_FINAL_STATUSES.contains(currentStatus) || targetStatus == currentStatus) {
             return;
         }
 
@@ -83,7 +100,7 @@ public class OrderStatusPolicy {
         if (currentStatus == null) {
             throw new AppException(ErrorCode.CONFLICT, "Cannot " + actionName + " order with missing status");
         }
-        if (TERMINAL_STATUSES.contains(currentStatus) || !allowedSources.contains(currentStatus)) {
+        if (CLOSED_STATUSES.contains(currentStatus) || !allowedSources.contains(currentStatus)) {
             throw new AppException(ErrorCode.CONFLICT,
                     "Cannot " + actionName + " order in " + currentStatus + " status");
         }
@@ -99,13 +116,16 @@ public class OrderStatusPolicy {
         if (targetStatus == OrderStatus.DELIVERED && order.getDeliveredAt() == null) {
             order.setDeliveredAt(Instant.now());
         }
+        if (targetStatus == OrderStatus.RETURNED && order.getReturnCompletedAt() == null) {
+            order.setReturnCompletedAt(Instant.now());
+        }
     }
 
     private OrderStatus mapGhnStatus(String ghnStatus) {
         String normalized = ghnStatus.toLowerCase(Locale.ROOT);
         return switch (normalized) {
             case "delivered" -> OrderStatus.DELIVERED;
-            case "cancel", "returned" -> OrderStatus.CANCELLED;
+            case "cancel" -> OrderStatus.CANCELLED;
             case "shipping", "shipped", "picked", "transporting", "sorting", "delivering",
                     "money_collect_delivering" -> OrderStatus.SHIPPING;
             default -> null;
@@ -118,7 +138,9 @@ public class OrderStatusPolicy {
             case PENDING_PAYMENT -> 1;
             case PROCESSING -> 2;
             case SHIPPING -> 3;
-            case DELIVERED, CANCELLED -> 4;
+            case DELIVERED -> 4;
+            case RETURN_REQUESTED -> 5;
+            case RETURNED, CANCELLED -> 6;
         };
     }
 }

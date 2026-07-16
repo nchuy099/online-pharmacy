@@ -132,6 +132,25 @@ public class InventoryCommandService {
         inventorySummarySyncService.sync(variantId);
     }
 
+    @Transactional
+    public void returnAllocations(
+            UUID variantId,
+            List<ReservationAllocation> allocations,
+            InventoryReferenceType referenceType,
+            String referenceId,
+            UUID createdBy) {
+        InventorySummaryEntity summary = inventorySummaryRepository.findByVariantId(variantId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Inventory summary not found"));
+        for (ReservationAllocation allocation : allocations) {
+            InventoryLotEntity lot = inventoryLotRepository.findById(allocation.lotId())
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Inventory lot not found"));
+            lot.importStock(allocation.quantity(), allocation.unitCost());
+            saveTransaction(summary, summary.getVariant(), lot, TransactionType.RETURN, allocation.quantity(),
+                    allocation.unitCost(), "Return stock", referenceType, referenceId, createdBy);
+        }
+        inventorySummarySyncService.sync(variantId);
+    }
+
     private InventorySummaryEntity ensureSummary(UUID variantId, ProductVariantEntity variant) {
         return inventorySummaryRepository.findByVariantId(variantId).orElseGet(() -> {
             inventorySummaryRepository.insertDefaultSummary(variantId);

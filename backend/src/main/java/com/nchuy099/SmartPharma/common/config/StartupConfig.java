@@ -131,6 +131,7 @@ public class StartupConfig {
         PermissionEntity orderRead = upsertPermission(RbacPermissions.READ_ORDER, "Read orders", RoleType.ADMIN, false, true);
         PermissionEntity orderConfirm = upsertPermission(RbacPermissions.CONFIRM_ORDER, "Confirm orders", RoleType.ADMIN, false, true);
         PermissionEntity orderShip = upsertPermission(RbacPermissions.SHIP_ORDER, "Ship orders", RoleType.ADMIN, false, true);
+        PermissionEntity orderReturnManage = upsertPermission(RbacPermissions.MANAGE_ORDER_RETURN, "Manage order return requests", RoleType.ADMIN, false, true);
         PermissionEntity paymentRead = upsertPermission(RbacPermissions.READ_PAYMENT, "Read payment details", RoleType.ADMIN, true, false);
 
         PermissionEntity analyticsRead = upsertPermission(RbacPermissions.READ_ANALYTICS, "Read analytics dashboard", RoleType.ADMIN, true, false);
@@ -151,7 +152,7 @@ public class StartupConfig {
                 productRead, productCreate, productUpdate, productDelete, productImageUpload,
                 categoryRead, categoryCreate, categoryUpdate, categoryDelete,
                 inventoryRead, inventoryImport,
-                orderRead, orderConfirm, orderShip, paymentRead,
+                orderRead, orderConfirm, orderShip, orderReturnManage, paymentRead,
                 analyticsRead,
                 flashSaleRead, flashSaleManage,
                 userRead, userCreate, userUpdate, userRoleAssign, userStatusUpdate, userPasswordReset,
@@ -161,7 +162,7 @@ public class StartupConfig {
                 productRead, productCreate, productUpdate, productDelete, productImageUpload,
                 categoryRead, categoryCreate, categoryUpdate, categoryDelete,
                 inventoryRead, inventoryImport,
-                orderRead, orderConfirm, orderShip);
+                orderRead, orderConfirm, orderShip, orderReturnManage);
     }
 
     private PermissionEntity upsertPermission(String name, String description, RoleType roleType, boolean critical, boolean assignable) {

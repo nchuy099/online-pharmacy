@@ -55,6 +55,8 @@ const OrderTable = React.memo(({ orders, isLoading = false }: OrderTableProps) =
                     PROCESSING: 'bg-indigo-100 text-indigo-700',
                     SHIPPING: 'bg-purple-100 text-purple-700',
                     DELIVERED: 'bg-green-100 text-green-700',
+                    RETURN_REQUESTED: 'bg-orange-100 text-orange-700',
+                    RETURNED: 'bg-slate-100 text-slate-700',
                     CANCELLED: 'bg-red-100 text-red-700'
                 };
                 const labels = {
@@ -63,6 +65,8 @@ const OrderTable = React.memo(({ orders, isLoading = false }: OrderTableProps) =
                     PROCESSING: 'Đang xử lý',
                     SHIPPING: 'Đang giao',
                     DELIVERED: 'Đã giao',
+                    RETURN_REQUESTED: 'Yêu cầu trả hàng',
+                    RETURNED: 'Đã trả hàng',
                     CANCELLED: 'Đã hủy'
                 };
                 return (

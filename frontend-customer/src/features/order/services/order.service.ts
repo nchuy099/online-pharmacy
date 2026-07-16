@@ -42,6 +42,26 @@ export const orderService = {
         return OrderApi.cancel(orderId, { reason });
     },
 
+    uploadReturnEvidence: async (orderId: string, file: File): Promise<string> => {
+        const payload = await OrderApi.createReturnEvidenceUploadUrl(orderId);
+        const response = await fetch(payload.uploadUrl, {
+            method: "PUT",
+            headers: {
+                "Content-Type": file.type,
+            },
+            body: file,
+        });
+        if (!response.ok) {
+            throw new Error(`Upload return evidence failed (${response.status} ${response.statusText})`);
+        }
+        return payload.fileUrl;
+    },
+
+    createReturnRequest: async (orderId: string, reason: string, imageUrls: string[] = []): Promise<Order> => {
+        const resp = await OrderApi.createReturnRequest(orderId, { reason, imageUrls });
+        return mapOrderDetailsResponse(resp);
+    },
+
     getDetails: async (orderId: string): Promise<Order> => {
         const resp = await OrderApi.getDetails(orderId);
         return mapOrderDetailsResponse(resp);

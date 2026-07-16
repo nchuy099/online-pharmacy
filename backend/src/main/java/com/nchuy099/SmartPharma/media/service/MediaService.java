@@ -186,6 +186,7 @@ public class MediaService {
 
         return switch (uploadType) {
             case AVATAR, PRODUCT_IMAGE -> String.format("%s.%s", generatedId, extension);
+            case RETURN_EVIDENCE -> String.format("images/order-returns/%s/%s.%s", defaultSegment(containerId), generatedId, extension);
             case POST -> String.format("%s.%s", StringUtils.hasText(mediaFileId) ? mediaFileId : generatedId, extension);
         };
     }
@@ -224,6 +225,7 @@ public class MediaService {
         return switch (uploadType) {
             case AVATAR -> "images/avatars";
             case PRODUCT_IMAGE -> "images/products";
+            case RETURN_EVIDENCE -> "images/order-returns";
             case POST -> "images/posts";
         };
     }
@@ -232,6 +234,7 @@ public class MediaService {
         return switch (uploadType) {
             case AVATAR -> "Avatar";
             case PRODUCT_IMAGE -> "Product image";
+            case RETURN_EVIDENCE -> "Return evidence image";
             case POST -> "Post image";
         };
     }

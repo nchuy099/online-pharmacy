@@ -14,7 +14,9 @@ import com.nchuy099.SmartPharma.user.enums.RbacPermissions;
 import com.nchuy099.SmartPharma.order.application.command.ConfirmOrderUseCase;
 import com.nchuy099.SmartPharma.order.application.command.ShipOrderUseCase;
 import com.nchuy099.SmartPharma.order.application.query.AdminOrderQueryService;
+import com.nchuy099.SmartPharma.order.application.returnrequest.OrderReturnRequestService;
 import com.nchuy099.SmartPharma.payment.application.query.PaymentQueryService;
+import com.nchuy099.SmartPharma.order.dto.request.ReviewOrderReturnRequest;
 import com.nchuy099.SmartPharma.order.dto.response.OrderPageResponse;
 import com.nchuy099.SmartPharma.order.dto.response.OrderResponse;
 import com.nchuy099.SmartPharma.payment.dto.response.PaymentResponse;
@@ -33,6 +35,7 @@ public class AdminOrderController {
     private final PaymentQueryService paymentQueryService;
     private final ConfirmOrderUseCase confirmOrderUseCase;
     private final ShipOrderUseCase shipOrderUseCase;
+    private final OrderReturnRequestService orderReturnRequestService;
 
     @GetMapping("/{id}/details")
     @PreAuthorize("hasAuthority(T(com.nchuy099.SmartPharma.user.enums.RbacPermissions).READ_ORDER)")
@@ -71,5 +74,23 @@ public class AdminOrderController {
     public OrderResponse shipOrder(@PathVariable(name = "id") String id) {
         log.info("Ship order request received for id: {}", id);
         return shipOrderUseCase.ship(UUID.fromString(id));
+    }
+
+    @PostMapping("/{id}/return-requests/approve")
+    @PreAuthorize("hasAuthority(T(com.nchuy099.SmartPharma.user.enums.RbacPermissions).MANAGE_ORDER_RETURN)")
+    public OrderResponse approveReturnRequest(
+            @PathVariable(name = "id") String id,
+            @org.springframework.web.bind.annotation.RequestBody(required = false) ReviewOrderReturnRequest req) {
+        log.info("Approve return request received for id: {}", id);
+        return orderReturnRequestService.approve(UUID.fromString(id), req != null ? req : new ReviewOrderReturnRequest());
+    }
+
+    @PostMapping("/{id}/return-requests/reject")
+    @PreAuthorize("hasAuthority(T(com.nchuy099.SmartPharma.user.enums.RbacPermissions).MANAGE_ORDER_RETURN)")
+    public OrderResponse rejectReturnRequest(
+            @PathVariable(name = "id") String id,
+            @org.springframework.web.bind.annotation.RequestBody(required = false) ReviewOrderReturnRequest req) {
+        log.info("Reject return request received for id: {}", id);
+        return orderReturnRequestService.reject(UUID.fromString(id), req != null ? req : new ReviewOrderReturnRequest());
     }
 }

@@ -31,6 +31,8 @@ const OrderPage = () => {
                 { label: 'Đang xử lý', value: 'PROCESSING' },
                 { label: 'Đang giao', value: 'SHIPPING' },
                 { label: 'Đã giao', value: 'DELIVERED' },
+                { label: 'Yêu cầu trả hàng', value: 'RETURN_REQUESTED' },
+                { label: 'Đã trả hàng', value: 'RETURNED' },
                 { label: 'Đã hủy', value: 'CANCELLED' },
             ]
         }

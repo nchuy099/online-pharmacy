@@ -44,6 +44,26 @@ const orderApi = {
             throw error;
         }
     },
+
+    async approveReturnRequest(id: string, reviewNote?: string): Promise<ApiResponse<OrderDetailsResponse>> {
+        try {
+            const res = await axios.post(`/admin/orders/${id}/return-requests/approve`, { reviewNote });
+            return res.data;
+        } catch (error) {
+            console.error('Approve return request error: ', error);
+            throw error;
+        }
+    },
+
+    async rejectReturnRequest(id: string, reviewNote?: string): Promise<ApiResponse<OrderDetailsResponse>> {
+        try {
+            const res = await axios.post(`/admin/orders/${id}/return-requests/reject`, { reviewNote });
+            return res.data;
+        } catch (error) {
+            console.error('Reject return request error: ', error);
+            throw error;
+        }
+    },
 };
 
 export default orderApi;

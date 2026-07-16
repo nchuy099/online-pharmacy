@@ -1,6 +1,6 @@
 import { Pagination } from '../../../shared/types';
 
-export type OrderStatus = 'PENDING' | 'PENDING_PAYMENT' | 'PROCESSING' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED';
+export type OrderStatus = 'PENDING' | 'PENDING_PAYMENT' | 'PROCESSING' | 'SHIPPING' | 'DELIVERED' | 'RETURN_REQUESTED' | 'RETURNED' | 'CANCELLED';
 
 export interface OrderItemInventoryAllocation {
     id: string;
@@ -28,6 +28,17 @@ export interface PaymentInfo {
     status: string;
 }
 
+export interface OrderReturnRequest {
+    id: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    reason: string;
+    reviewNote?: string | null;
+    refundAmount: number;
+    requestedAt?: string;
+    reviewedAt?: string | null;
+    imageUrls: string[];
+}
+
 export interface AddressInfo {
     fullName?: string;
     phoneNumber?: string;
@@ -49,6 +60,7 @@ export interface Order {
     expectedDeliveryTime?: number;
     note?: string;
     status: OrderStatus;
+    returnRequest?: OrderReturnRequest | null;
     totalItems: number;
 }
 

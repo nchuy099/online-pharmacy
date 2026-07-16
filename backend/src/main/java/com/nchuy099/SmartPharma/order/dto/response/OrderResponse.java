@@ -54,6 +54,8 @@ public class OrderResponse {
     String bankAccount;
     Long expectedDeliveryTime;
     java.time.Instant deliveredAt;
+    java.time.Instant returnCompletedAt;
+    ReturnRequestDto returnRequest;
     ShipmentInfoDto shipment;
 
     @Getter
@@ -165,5 +167,22 @@ public class OrderResponse {
         private String method;
         private String status;
         private BigDecimal amount;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class ReturnRequestDto {
+        private String id;
+        private String status;
+        private String reason;
+        private String reviewNote;
+        private BigDecimal refundAmount;
+        private java.time.Instant requestedAt;
+        private java.time.Instant reviewedAt;
+        private List<String> imageUrls;
     }
 }
