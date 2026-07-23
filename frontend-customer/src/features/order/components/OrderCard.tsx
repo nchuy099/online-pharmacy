@@ -10,8 +10,9 @@ interface OrderCardProps {
 
 const getStatusText = (status: OrderStatus) => {
     const statusMap: Record<string, string> = {
-        PENDING: "Chờ xác nhận",
         PENDING_PAYMENT: "Chờ thanh toán",
+        PENDING_CONFIRMATION: "Chờ nhà thuốc xác nhận",
+        CONFIRMED: "Nhà thuốc đã xác nhận",
         PROCESSING: "Đang xử lý",
         SHIPPING: "Đang giao",
         DELIVERED: "Đã giao",
@@ -24,8 +25,9 @@ const getStatusText = (status: OrderStatus) => {
 
 const getStatusStyles = (status: OrderStatus) => {
     const styleMap: Record<string, string> = {
-        PENDING: "bg-yellow-50 text-yellow-600 border-yellow-200",
         PENDING_PAYMENT: "bg-amber-50 text-amber-600 border-amber-200",
+        PENDING_CONFIRMATION: "bg-yellow-50 text-yellow-600 border-yellow-200",
+        CONFIRMED: "bg-blue-50 text-blue-600 border-blue-200",
         PROCESSING: "bg-indigo-50 text-indigo-600 border-indigo-200",
         SHIPPING: "bg-purple-50 text-purple-600 border-purple-200",
         DELIVERED: "bg-emerald-50 text-emerald-600 border-emerald-200",
@@ -38,12 +40,12 @@ const getStatusStyles = (status: OrderStatus) => {
 
 const getPaymentStatusText = (status: PaymentStatus) => {
     const statusMap: Record<string, string> = {
-        INITIATED: "Chờ thanh toán",
-        PROCESSING: "Đang xử lý",
+        PENDING: "Chờ thanh toán",
+        PENDING_COLLECTION: "Chờ thu tiền COD",
         PARTIAL: "Thanh toán một phần",
         COMPLETED: "Đã thanh toán",
-        FAILED: "Thất bại",
         CANCELLED: "Đã hủy",
+        REFUND_PENDING: "Chờ hoàn tiền",
         REFUNDED: "Đã hoàn tiền"
     };
     return statusMap[status] || status;
@@ -51,12 +53,12 @@ const getPaymentStatusText = (status: PaymentStatus) => {
 
 const getPaymentStatusStyles = (status: PaymentStatus) => {
     const styleMap: Record<string, string> = {
-        INITIATED: "text-yellow-600 bg-yellow-50 px-2 py-1 rounded-md",
-        PROCESSING: "text-blue-600 bg-blue-50 px-2 py-1 rounded-md",
+        PENDING: "text-yellow-600 bg-yellow-50 px-2 py-1 rounded-md",
+        PENDING_COLLECTION: "text-amber-600 bg-amber-50 px-2 py-1 rounded-md",
         PARTIAL: "text-amber-600 bg-amber-50 px-2 py-1 rounded-md",
         COMPLETED: "text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md",
-        FAILED: "text-red-600 bg-red-50 px-2 py-1 rounded-md",
         CANCELLED: "text-red-600 bg-red-50 px-2 py-1 rounded-md",
+        REFUND_PENDING: "text-orange-600 bg-orange-50 px-2 py-1 rounded-md",
         REFUNDED: "text-slate-600 bg-slate-50 px-2 py-1 rounded-md"
     };
     return styleMap[status] || "text-gray-600 bg-gray-50 px-2 py-1 rounded-md";

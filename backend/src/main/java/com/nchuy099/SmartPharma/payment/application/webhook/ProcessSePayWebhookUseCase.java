@@ -13,6 +13,7 @@ import com.nchuy099.SmartPharma.order.domain.entity.OrderEntity;
 import com.nchuy099.SmartPharma.order.domain.repository.OrderRepository;
 import com.nchuy099.SmartPharma.order.domain.policy.OrderStatusPolicy;
 import com.nchuy099.SmartPharma.order.infrastructure.event.OrderEventPublisher;
+import com.nchuy099.SmartPharma.inventory.service.InventoryReservationService;
 import com.nchuy099.SmartPharma.payment.domain.entity.PaymentEntity;
 import com.nchuy099.SmartPharma.payment.domain.enums.PaymentStatus;
 import com.nchuy099.SmartPharma.payment.dto.request.SePayWebhookRequest;
@@ -28,6 +29,7 @@ public class ProcessSePayWebhookUseCase {
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final OrderStatusPolicy orderStatusPolicy;
+    private final InventoryReservationService inventoryReservationService;
     private final OrderEventPublisher orderEventPublisher;
 
     @Value("${sepay.apiKey}")
@@ -121,6 +123,7 @@ public class ProcessSePayWebhookUseCase {
         payment.setStatus(PaymentStatus.COMPLETED);
         payment.setExternalTransactionId(externalId);
         orderStatusPolicy.markPaymentSuccess(order);
+        inventoryReservationService.clearOrderReservationExpiry(order);
 
         orderRepository.save(order);
         paymentRepository.save(payment);

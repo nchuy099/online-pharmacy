@@ -21,7 +21,7 @@ export const OrderHistoryPage = () => {
         if (activeTab === 'all') return orders;
         return orders.filter(order => {
             const status = order.status.toLowerCase();
-            if (activeTab === 'processing') return status === 'pending' || status === 'pending_payment' || status === 'processing';
+            if (activeTab === 'processing') return status === 'pending_payment' || status === 'pending_confirmation' || status === 'confirmed' || status === 'processing';
             if (activeTab === 'returned') return status === 'return_requested' || status === 'returned';
             return status === activeTab;
         });

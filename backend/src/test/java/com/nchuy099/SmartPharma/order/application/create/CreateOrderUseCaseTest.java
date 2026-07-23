@@ -128,7 +128,7 @@ class CreateOrderUseCaseTest {
         PaymentEntity payment = PaymentEntity.builder()
                 .amount(new BigDecimal("180000"))
                 .method(PaymentMethod.BANK_TRANSFER)
-                .status(PaymentStatus.INITIATED)
+                .status(PaymentStatus.PENDING)
                 .build();
         OrderItemEntity orderItem = OrderItemEntity.builder()
                 .variant(variant)

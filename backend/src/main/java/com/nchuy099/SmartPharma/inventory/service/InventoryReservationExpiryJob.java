@@ -3,10 +3,12 @@ package com.nchuy099.SmartPharma.inventory.service;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(name = "inventory.reservation.expiry-job.enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class InventoryReservationExpiryJob {

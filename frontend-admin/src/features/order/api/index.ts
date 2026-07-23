@@ -45,6 +45,16 @@ const orderApi = {
         }
     },
 
+    async confirmCodPaymentCollection(id: string): Promise<ApiResponse<OrderDetailsResponse>> {
+        try {
+            const res = await axios.post(`/admin/orders/${id}/payment/confirm-cod-collection`);
+            return res.data;
+        } catch (error) {
+            console.error('Confirm COD payment collection error: ', error);
+            throw error;
+        }
+    },
+
     async approveReturnRequest(id: string, reviewNote?: string): Promise<ApiResponse<OrderDetailsResponse>> {
         try {
             const res = await axios.post(`/admin/orders/${id}/return-requests/approve`, { reviewNote });

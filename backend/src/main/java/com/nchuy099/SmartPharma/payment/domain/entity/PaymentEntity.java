@@ -49,7 +49,7 @@ public class PaymentEntity extends AbstractEntity {
     @Column(nullable = false)
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    PaymentStatus status = PaymentStatus.INITIATED;
+    PaymentStatus status = PaymentStatus.PENDING;
 
     public void setOrder(OrderEntity order) {
         this.order = order;

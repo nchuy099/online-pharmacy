@@ -26,7 +26,7 @@ public class OrderStatusPolicy {
             OrderStatus.RETURNED);
 
     public void confirm(OrderEntity order) {
-        transition(order, EnumSet.of(OrderStatus.PENDING), OrderStatus.CONFIRMED, "confirm");
+        transition(order, EnumSet.of(OrderStatus.PENDING_CONFIRMATION), OrderStatus.CONFIRMED, "confirm");
     }
 
     public void process(OrderEntity order) {
@@ -42,7 +42,7 @@ public class OrderStatusPolicy {
     }
 
     public void cancel(OrderEntity order) {
-        transition(order, EnumSet.of(OrderStatus.PENDING, OrderStatus.PENDING_PAYMENT, OrderStatus.CONFIRMED,
+        transition(order, EnumSet.of(OrderStatus.PENDING_PAYMENT, OrderStatus.PENDING_CONFIRMATION, OrderStatus.CONFIRMED,
                 OrderStatus.PROCESSING), OrderStatus.CANCELLED, "cancel");
     }
 
@@ -59,12 +59,12 @@ public class OrderStatusPolicy {
     }
 
     public void markPartialPayment(OrderEntity order) {
-        transition(order, EnumSet.of(OrderStatus.PENDING, OrderStatus.PENDING_PAYMENT), OrderStatus.PENDING_PAYMENT,
+        transition(order, EnumSet.of(OrderStatus.PENDING_PAYMENT), OrderStatus.PENDING_PAYMENT,
                 "mark partial payment");
     }
 
     public void markPaymentSuccess(OrderEntity order) {
-        transition(order, EnumSet.of(OrderStatus.PENDING, OrderStatus.PENDING_PAYMENT), OrderStatus.PENDING,
+        transition(order, EnumSet.of(OrderStatus.PENDING_PAYMENT), OrderStatus.PENDING_CONFIRMATION,
                 "mark payment success");
     }
 
@@ -139,14 +139,14 @@ public class OrderStatusPolicy {
 
     private int precedence(OrderStatus status) {
         return switch (status) {
-            case PENDING -> 0;
-            case PENDING_PAYMENT -> 1;
+            case PENDING_PAYMENT -> 0;
+            case PENDING_CONFIRMATION -> 1;
             case CONFIRMED -> 2;
             case PROCESSING -> 3;
             case SHIPPING -> 4;
             case DELIVERED -> 5;
             case RETURN_REQUESTED -> 6;
-            case RETURNED, CANCELLED -> 6;
+            case RETURNED, CANCELLED -> 7;
         };
     }
 }

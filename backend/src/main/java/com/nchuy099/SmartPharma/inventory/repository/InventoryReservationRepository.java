@@ -42,8 +42,8 @@ public interface InventoryReservationRepository extends JpaRepository<InventoryR
           AND r.expiresAt IS NOT NULL
           AND r.expiresAt < :now
           AND o.status IN (
-              com.nchuy099.SmartPharma.order.domain.enums.OrderStatus.PENDING,
-              com.nchuy099.SmartPharma.order.domain.enums.OrderStatus.PENDING_PAYMENT
+              com.nchuy099.SmartPharma.order.domain.enums.OrderStatus.PENDING_PAYMENT,
+              com.nchuy099.SmartPharma.order.domain.enums.OrderStatus.PENDING_CONFIRMATION
           )
         ORDER BY r.expiresAt ASC
     """)

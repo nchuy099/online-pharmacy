@@ -21,6 +21,7 @@ import com.nchuy099.SmartPharma.order.domain.enums.OrderStatus;
 import com.nchuy099.SmartPharma.order.domain.policy.OrderStatusPolicy;
 import com.nchuy099.SmartPharma.order.domain.repository.OrderRepository;
 import com.nchuy099.SmartPharma.order.infrastructure.event.OrderEventPublisher;
+import com.nchuy099.SmartPharma.inventory.service.InventoryReservationService;
 import com.nchuy099.SmartPharma.payment.application.webhook.ProcessSePayWebhookUseCase;
 import com.nchuy099.SmartPharma.payment.domain.entity.PaymentEntity;
 import com.nchuy099.SmartPharma.payment.domain.enums.PaymentMethod;
@@ -33,6 +34,7 @@ class SePayServiceTest {
     private OrderRepository orderRepository;
     private PaymentRepository paymentRepository;
     private OrderStatusPolicy orderStatusPolicy;
+    private InventoryReservationService inventoryReservationService;
     private OrderEventPublisher orderEventPublisher;
     private ProcessSePayWebhookUseCase processSePayWebhookUseCase;
 
@@ -41,10 +43,11 @@ class SePayServiceTest {
         orderRepository = mock(OrderRepository.class);
         paymentRepository = mock(PaymentRepository.class);
         orderStatusPolicy = new OrderStatusPolicy();
+        inventoryReservationService = mock(InventoryReservationService.class);
         orderEventPublisher = mock(OrderEventPublisher.class);
 
         processSePayWebhookUseCase = new ProcessSePayWebhookUseCase(orderRepository, paymentRepository,
-                orderStatusPolicy, orderEventPublisher);
+                orderStatusPolicy, inventoryReservationService, orderEventPublisher);
         ReflectionTestUtils.setField(processSePayWebhookUseCase, "sepayApiKey", "secret");
         ReflectionTestUtils.setField(processSePayWebhookUseCase, "accountNumber", "0123499999");
         ReflectionTestUtils.setField(processSePayWebhookUseCase, "bankName", "MBBank");
@@ -57,13 +60,13 @@ class SePayServiceTest {
 
         OrderEntity order = OrderEntity.builder()
                 .orderCode(orderCode)
-                .status(OrderStatus.PENDING)
+                .status(OrderStatus.PENDING_PAYMENT)
                 .finalAmount(new BigDecimal("1000"))
                 .build();
         PaymentEntity payment = PaymentEntity.builder()
                 .amount(new BigDecimal("1000"))
                 .method(PaymentMethod.BANK_TRANSFER)
-                .status(PaymentStatus.INITIATED)
+                .status(PaymentStatus.PENDING)
                 .build();
         payment.setId(paymentId);
         order.setPayment(payment);
@@ -97,7 +100,7 @@ class SePayServiceTest {
         PaymentEntity payment = PaymentEntity.builder()
                 .amount(new BigDecimal("1000"))
                 .method(PaymentMethod.BANK_TRANSFER)
-                .status(PaymentStatus.INITIATED)
+                .status(PaymentStatus.PENDING)
                 .build();
         payment.setId(paymentId);
         order.setPayment(payment);
@@ -114,7 +117,8 @@ class SePayServiceTest {
         assertEquals("Payment processed successfully", response.get("message"));
         assertEquals(PaymentStatus.COMPLETED, payment.getStatus());
         assertEquals("123", payment.getExternalTransactionId());
-        assertEquals(OrderStatus.PENDING, order.getStatus());
+        assertEquals(OrderStatus.PENDING_CONFIRMATION, order.getStatus());
+        verify(inventoryReservationService).clearOrderReservationExpiry(order);
         verify(orderRepository).save(order);
         verify(paymentRepository).save(payment);
     }

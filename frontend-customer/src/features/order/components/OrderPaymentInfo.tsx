@@ -48,7 +48,7 @@ export const OrderPaymentInfo: React.FC<Props> = ({ order, paymentStatusConfig }
             </div>
 
             {/* Bank Transfer Instructions for Pending Orders */}
-            {order.payment?.method === "BANK_TRANSFER" && order.payment?.status === "INITIATED" && (
+            {order.payment?.method === "BANK_TRANSFER" && (order.payment?.status === "PENDING" || order.payment?.status === "PARTIAL") && (
                 <div className="bg-emerald-50 rounded-3xl p-8 border border-emerald-100 shadow-sm md:col-span-2">
                     <h2 className="text-xl font-bold text-emerald-900 mb-6 flex items-center gap-3">
                         <FaUniversity className="text-emerald-600" />

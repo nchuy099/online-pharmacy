@@ -51,6 +51,7 @@ const OrderDetailsPage: React.FC = () => {
     const navigate = useNavigate();
     const { order, isLoading, error, refresh } = useOrderDetails(id);
     const [isConfirming, setIsConfirming] = React.useState(false);
+    const [isConfirmingPaymentCollection, setIsConfirmingPaymentCollection] = React.useState(false);
     const [isShipping, setIsShipping] = React.useState(false);
     const [isShipConfirmOpen, setIsShipConfirmOpen] = React.useState(false);
     const [isReviewingReturn, setIsReviewingReturn] = React.useState(false);
@@ -62,7 +63,7 @@ const OrderDetailsPage: React.FC = () => {
             setIsConfirming(true);
             await orderService.confirmOrder(id);
             await refresh();
-        } catch (err) {
+        } catch {
             alert('Lỗi xác nhận đơn hàng');
         } finally {
             setIsConfirming(false);
@@ -76,10 +77,23 @@ const OrderDetailsPage: React.FC = () => {
             await orderService.shipOrder(id);
             await refresh();
             setIsShipConfirmOpen(false);
-        } catch (err) {
+        } catch {
             alert('Lỗi tạo đơn giao hàng');
         } finally {
             setIsShipping(false);
+        }
+    };
+
+    const handleConfirmPaymentCollection = async () => {
+        if (!id) return;
+        try {
+            setIsConfirmingPaymentCollection(true);
+            await orderService.confirmCodPaymentCollection(id);
+            await refresh();
+        } catch {
+            alert('Lỗi xác nhận thu COD');
+        } finally {
+            setIsConfirmingPaymentCollection(false);
         }
     };
 
@@ -90,7 +104,7 @@ const OrderDetailsPage: React.FC = () => {
             await orderService.approveReturnRequest(id, returnReviewNote.trim() || undefined);
             setReturnReviewNote('');
             await refresh();
-        } catch (err) {
+        } catch {
             alert('Lỗi duyệt yêu cầu trả hàng');
         } finally {
             setIsReviewingReturn(false);
@@ -104,7 +118,7 @@ const OrderDetailsPage: React.FC = () => {
             await orderService.rejectReturnRequest(id, returnReviewNote.trim() || undefined);
             setReturnReviewNote('');
             await refresh();
-        } catch (err) {
+        } catch {
             alert('Lỗi từ chối yêu cầu trả hàng');
         } finally {
             setIsReviewingReturn(false);
@@ -146,6 +160,8 @@ const OrderDetailsPage: React.FC = () => {
         : '-';
     const shippingCode = order.shipment?.orderCode || '-';
     const shippingStatusLabel = getGhnStatusLabel(order.shipment?.status);
+    const canConfirmPaymentCollection = order.payment?.method === 'COD'
+        && order.payment?.status === 'PENDING_COLLECTION';
 
     return (
         <div className="space-y-6">
@@ -157,7 +173,7 @@ const OrderDetailsPage: React.FC = () => {
                 />
                 
                 <div className="flex items-center gap-3 mt-4 sm:mt-0">
-                    {order.status === 'PENDING' && (
+                    {order.status === 'PENDING_CONFIRMATION' && (
                         <button
                             onClick={handleConfirm}
                             disabled={isConfirming}
@@ -173,6 +189,15 @@ const OrderDetailsPage: React.FC = () => {
                             className="px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors shadow-sm"
                         >
                             {isShipping ? 'Đang tạo...' : 'Tạo đơn GHN'}
+                        </button>
+                    )}
+                    {canConfirmPaymentCollection && (
+                        <button
+                            onClick={handleConfirmPaymentCollection}
+                            disabled={isConfirmingPaymentCollection}
+                            className="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm"
+                        >
+                            {isConfirmingPaymentCollection ? 'Đang xác nhận...' : 'Xác nhận đã thu COD'}
                         </button>
                     )}
                 </div>

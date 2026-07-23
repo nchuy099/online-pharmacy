@@ -1,8 +1,8 @@
 package com.nchuy099.SmartPharma.order.domain.enums;
 
 public enum OrderStatus {
-    PENDING,
     PENDING_PAYMENT,
+    PENDING_CONFIRMATION,
     CONFIRMED,
     PROCESSING,
     SHIPPING,

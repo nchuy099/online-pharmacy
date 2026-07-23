@@ -9,7 +9,7 @@ const mapApiOrder = (item: OrderResponse): Order => ({
     items: item.items?.map((it) => ({ id: it.id, productName: it.productName, quantity: it.quantity, unitPrice: it.unitPrice })),
     finalAmount: item.finalAmount,
     note: item.note,
-    status: (item.status || 'PENDING') as OrderStatus,
+    status: (item.status || 'PENDING_CONFIRMATION') as OrderStatus,
     totalItems: item.totalItems,
 });
 

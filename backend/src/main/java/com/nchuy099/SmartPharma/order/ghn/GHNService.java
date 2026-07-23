@@ -314,9 +314,10 @@ public class GHNService {
                                 .toProvinceName(toProvinceName)
                                 .toWardCode(toWardCode)
                                 .toDistrictId(toDistrictId)
-                                .codAmount(order.getStatus() == com.nchuy099.SmartPharma.order.domain.enums.OrderStatus.PROCESSING
-                                                ? 0
-                                                : order.getFinalAmount().intValue())
+                                .codAmount(order.getPayment() != null
+                                                && order.getPayment().getMethod() == com.nchuy099.SmartPharma.payment.domain.enums.PaymentMethod.COD
+                                                        ? order.getFinalAmount().intValue()
+                                                        : 0)
                                 .content("Đơn hàng: " + order.getId())
                                 .weight(DEFAULT_WEIGHT * order.getItems().size())
                                 .length(DEFAULT_LENGTH)

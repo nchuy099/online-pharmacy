@@ -13,6 +13,8 @@ import com.nchuy099.SmartPharma.order.dto.mapper.OrderMapper;
 import com.nchuy099.SmartPharma.order.dto.response.OrderResponse;
 import com.nchuy099.SmartPharma.order.infrastructure.event.OrderEventPublisher;
 import com.nchuy099.SmartPharma.order.infrastructure.shipping.ShippingProvider;
+import com.nchuy099.SmartPharma.payment.domain.enums.PaymentMethod;
+import com.nchuy099.SmartPharma.payment.domain.enums.PaymentStatus;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +44,9 @@ public class ShipOrderUseCase {
         orderStatusPolicy.ship(order);
         inventoryReservationService.commitOrderReservation(order, null);
         order.setStockExported(true);
+        if (order.getPayment() != null && order.getPayment().getMethod() == PaymentMethod.COD) {
+            order.getPayment().setStatus(PaymentStatus.PENDING_COLLECTION);
+        }
         orderRepository.save(order);
         orderEventPublisher.publishShipped(order);
         return orderMapper.toOrderResponse(order);

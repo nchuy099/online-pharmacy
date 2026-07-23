@@ -72,14 +72,16 @@ public class OrderFactory {
     }
 
     private OrderStatus determineInitialStatus(PaymentMethod method) {
-        return method == PaymentMethod.BANK_TRANSFER ? OrderStatus.PENDING_PAYMENT : OrderStatus.PENDING;
+        return method == PaymentMethod.BANK_TRANSFER
+                ? OrderStatus.PENDING_PAYMENT
+                : OrderStatus.PENDING_CONFIRMATION;
     }
 
     private PaymentEntity buildPayment(BigDecimal amount, PaymentMethod method) {
         return PaymentEntity.builder()
                 .amount(amount)
                 .method(method)
-                .status(PaymentStatus.INITIATED)
+                .status(PaymentStatus.PENDING)
                 .build();
     }
 

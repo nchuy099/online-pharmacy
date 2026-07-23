@@ -17,19 +17,19 @@ const PaymentCard: React.FC<PaymentCardProps> = ({ payment }) => {
 
     const getPaymentStatusLabel = (status: string) => {
         switch ((status || '').toUpperCase()) {
-            case 'INITIATED':
+            case 'PENDING':
                 return 'Chờ thanh toán';
             case 'PAID':
             case 'COMPLETED':
                 return 'Đã thanh toán';
             case 'PARTIAL':
                 return 'Thanh toán một phần';
-            case 'PENDING':
-                return 'Chờ thanh toán';
+            case 'PENDING_COLLECTION':
+                return 'Chờ thu COD';
+            case 'REFUND_PENDING':
+                return 'Chờ hoàn tiền';
             case 'REFUNDED':
                 return 'Đã hoàn tiền';
-            case 'FAILED':
-                return 'Thanh toán thất bại';
             case 'CANCELLED':
                 return 'Đã hủy';
             default:
@@ -57,8 +57,8 @@ const PaymentCard: React.FC<PaymentCardProps> = ({ payment }) => {
                 <div className="flex justify-between items-center">
                     <span className="text-gray-500">Trạng thái:</span>
                     <span className={`px-2 py-0.5 rounded text-xs font-semibold ${payment.status?.toUpperCase() === 'PAID' || payment.status?.toUpperCase() === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
-                        payment.status?.toUpperCase() === 'REFUNDED' ? 'bg-orange-100 text-orange-700' :
-                            payment.status?.toUpperCase() === 'FAILED' || payment.status?.toUpperCase() === 'CANCELLED'
+                        payment.status?.toUpperCase() === 'REFUNDED' || payment.status?.toUpperCase() === 'REFUND_PENDING' ? 'bg-orange-100 text-orange-700' :
+                            payment.status?.toUpperCase() === 'CANCELLED'
                                 ? 'bg-red-100 text-red-700'
                                 : 'bg-amber-100 text-amber-700'
                         }`}>

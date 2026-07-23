@@ -30,7 +30,7 @@ class PendingPaymentAutoCancelJobTest {
 
         UUID orderId = UUID.randomUUID();
         Instant cutoff = Instant.now();
-        OrderEntity order = order(OrderStatus.PENDING_PAYMENT, cutoff.minusSeconds(1), PaymentStatus.INITIATED);
+        OrderEntity order = order(OrderStatus.PENDING_PAYMENT, cutoff.minusSeconds(1), PaymentStatus.PENDING);
 
         when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(order));
 

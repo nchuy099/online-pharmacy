@@ -31,7 +31,7 @@ const mapApiOrder = (item: OrderResponse): Order => ({
     ghnServiceId: item.ghnServiceId,
     expectedDeliveryTime: item.expectedDeliveryTime,
     note: item.note,
-    status: (item.status || 'PENDING') as OrderStatus,
+    status: (item.status || 'PENDING_CONFIRMATION') as OrderStatus,
     returnRequest: item.returnRequest ? {
         id: item.returnRequest.id || '',
         status: item.returnRequest.status || 'PENDING',
@@ -110,6 +110,15 @@ const orderService = {
     async shipOrder(id: string): Promise<OrderDetails> {
         const res = await orderApi.shipOrder(id);
         const data = (res.data as any) ?? (res as any).result;
+        return mapApiOrderDetails(data);
+    },
+
+    async confirmCodPaymentCollection(id: string): Promise<OrderDetails> {
+        const res = await orderApi.confirmCodPaymentCollection(id);
+        const data = res.data ?? (res as unknown as { result?: OrderDetailsResponse }).result;
+        if (!data) {
+            throw new Error('Order details response is empty');
+        }
         return mapApiOrderDetails(data);
     },
 

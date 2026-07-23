@@ -32,8 +32,9 @@ interface PaymentStatusInfo {
 }
 
 const STATUS_CONFIG: Record<string, StatusConfig> = {
-    PENDING: { label: "Chờ xác nhận", icon: FaClock, color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200" },
     PENDING_PAYMENT: { label: "Chờ thanh toán", icon: FaClock, color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200" },
+    PENDING_CONFIRMATION: { label: "Chờ nhà thuốc xác nhận", icon: FaClock, color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200" },
+    CONFIRMED: { label: "Nhà thuốc đã xác nhận", icon: FaCheckCircle, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" },
     PROCESSING: { label: "Đang xử lý", icon: FaClock, color: "text-indigo-600", bg: "bg-indigo-50", border: "border-indigo-200" },
     SHIPPING: { label: "Đang giao hàng", icon: FaTruck, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200" },
     DELIVERED: { label: "Đã giao hàng", icon: FaCheckCircle, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
@@ -44,11 +45,12 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
 };
 
 const PAYMENT_STATUS_CONFIG: Record<string, PaymentStatusInfo> = {
-    INITIATED: { label: "Chờ thanh toán", color: "text-yellow-600" },
+    PENDING: { label: "Chờ thanh toán", color: "text-yellow-600" },
+    PENDING_COLLECTION: { label: "Chờ thu tiền COD", color: "text-amber-600" },
     PARTIAL: { label: "Thanh toán một phần", color: "text-amber-600" },
     COMPLETED: { label: "Đã thanh toán", color: "text-emerald-600" },
-    FAILED: { label: "Thanh toán thất bại", color: "text-red-600" },
     CANCELLED: { label: "Đã hủy", color: "text-red-600" },
+    REFUND_PENDING: { label: "Chờ hoàn tiền", color: "text-orange-600" },
     REFUNDED: { label: "Đã hoàn tiền", color: "text-slate-600" }
 };
 
@@ -112,11 +114,11 @@ export const OrderDetailsPage = () => {
         );
     }
 
-    const statusConfig = STATUS_CONFIG[order.status as string] || STATUS_CONFIG.PENDING;
+    const statusConfig = STATUS_CONFIG[order.status as string] || STATUS_CONFIG.PENDING_CONFIRMATION;
     const StatusIcon = statusConfig.icon;
-    const paymentStatusConfig = PAYMENT_STATUS_CONFIG[order.payment?.status as string] || PAYMENT_STATUS_CONFIG.INITIATED;
-    const canUpdate = order.status === "PENDING";
-    const canCancel = order.status === "PENDING";
+    const paymentStatusConfig = PAYMENT_STATUS_CONFIG[order.payment?.status as string] || PAYMENT_STATUS_CONFIG.PENDING;
+    const canUpdate = order.status === "PENDING_PAYMENT" || order.status === "PENDING_CONFIRMATION";
+    const canCancel = order.status === "PENDING_PAYMENT" || order.status === "PENDING_CONFIRMATION";
     const deliveredAtTime = order.deliveredAt ? new Date(order.deliveredAt).getTime() : 0;
     const canReturn = order.status === "DELIVERED"
         && !order.returnRequest

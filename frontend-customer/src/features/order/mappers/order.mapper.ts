@@ -165,7 +165,7 @@ export const mapOrderDetailsResponse = (resp: RawOrderResp): Order => {
         } : {
             amount: 0,
             method: "COD" as PaymentMethod,
-            status: "INITIATED" as PaymentStatus,
+            status: "PENDING" as PaymentStatus,
         },
         itemTotalAmount: resp.itemTotalAmount || 0,
         finalAmount: resp.finalAmount || 0,

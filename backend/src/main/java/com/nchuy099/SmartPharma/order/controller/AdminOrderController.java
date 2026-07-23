@@ -19,6 +19,7 @@ import com.nchuy099.SmartPharma.order.application.command.ShipOrderUseCase;
 import com.nchuy099.SmartPharma.order.application.query.AdminOrderQueryService;
 import com.nchuy099.SmartPharma.order.application.returnrequest.OrderReturnRequestService;
 import com.nchuy099.SmartPharma.payment.application.query.PaymentQueryService;
+import com.nchuy099.SmartPharma.payment.application.command.ConfirmCodPaymentCollectionUseCase;
 import com.nchuy099.SmartPharma.order.dto.request.OrderCancelRequest;
 import com.nchuy099.SmartPharma.order.dto.request.ReviewOrderReturnRequest;
 import com.nchuy099.SmartPharma.order.dto.response.OrderPageResponse;
@@ -37,6 +38,7 @@ public class AdminOrderController {
 
     private final AdminOrderQueryService adminOrderQueryService;
     private final PaymentQueryService paymentQueryService;
+    private final ConfirmCodPaymentCollectionUseCase confirmCodPaymentCollectionUseCase;
     private final AdminCancelOrderUseCase adminCancelOrderUseCase;
     private final ConfirmOrderUseCase confirmOrderUseCase;
     private final ProcessOrderUseCase processOrderUseCase;
@@ -95,6 +97,13 @@ public class AdminOrderController {
     public OrderResponse shipOrder(@PathVariable(name = "id") String id) {
         log.info("Ship order request received for id: {}", id);
         return shipOrderUseCase.ship(UUID.fromString(id));
+    }
+
+    @PostMapping("/{id}/payment/confirm-cod-collection")
+    @PreAuthorize("hasAuthority(T(com.nchuy099.SmartPharma.user.enums.RbacPermissions).CONFIRM_PAYMENT_COLLECTION)")
+    public OrderResponse confirmCodPaymentCollection(@PathVariable(name = "id") String id) {
+        log.info("Confirm COD payment collection request received for id: {}", id);
+        return confirmCodPaymentCollectionUseCase.confirmCollected(UUID.fromString(id));
     }
 
     @PostMapping("/{id}/return-requests/approve")

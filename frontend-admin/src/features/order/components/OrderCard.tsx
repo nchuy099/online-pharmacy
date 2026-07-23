@@ -20,11 +20,14 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
                     order.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
                     order.status === 'SHIPPING' ? 'bg-purple-100 text-purple-700' :
                     order.status === 'PENDING_PAYMENT' ? 'bg-amber-100 text-amber-700' :
+                    order.status === 'PENDING_CONFIRMATION' ? 'bg-yellow-100 text-yellow-700' :
+                    order.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-700' :
                     (order.status as string) === 'PROCESSING' ? 'bg-indigo-100 text-indigo-700' :
                         'bg-yellow-100 text-yellow-700'
                     }`}>
-                    {order.status === 'PENDING' ? 'Chờ xác nhận' :
-                     order.status === 'PENDING_PAYMENT' ? 'Chờ thanh toán' :
+                    {order.status === 'PENDING_PAYMENT' ? 'Chờ thanh toán' :
+                     order.status === 'PENDING_CONFIRMATION' ? 'Chờ xác nhận' :
+                     order.status === 'CONFIRMED' ? 'Đã xác nhận' :
                      (order.status as string) === 'PROCESSING' ? 'Đang xử lý' :
                      order.status === 'SHIPPING' ? 'Đang giao' :
                      order.status === 'DELIVERED' ? 'Đã giao' :

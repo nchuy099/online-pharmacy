@@ -80,7 +80,7 @@ public class OrderEntity extends AbstractEntity {
     @Builder.Default
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    OrderStatus status = OrderStatus.PENDING;
+    OrderStatus status = OrderStatus.PENDING_CONFIRMATION;
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     PaymentEntity payment;

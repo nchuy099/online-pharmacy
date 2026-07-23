@@ -25,6 +25,7 @@ public final class RbacPermissions {
     public static final String SHIP_ORDER = "SHIP_ORDER";
 
     public static final String READ_PAYMENT = "READ_PAYMENT";
+    public static final String CONFIRM_PAYMENT_COLLECTION = "CONFIRM_PAYMENT_COLLECTION";
 
     public static final String CREATE_PRODUCT = "CREATE_PRODUCT";
     public static final String DELETE_PRODUCT = "DELETE_PRODUCT";

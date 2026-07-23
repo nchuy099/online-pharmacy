@@ -142,6 +142,16 @@ public class InventoryReservationService {
     }
 
     @Transactional
+    public void clearOrderReservationExpiry(OrderEntity order) {
+        inventoryReservationRepository.findByOrderId(order.getId())
+                .filter(InventoryReservationEntity::isReserved)
+                .ifPresent(reservation -> {
+                    reservation.setExpiresAt(null);
+                    inventoryReservationRepository.save(reservation);
+                });
+    }
+
+    @Transactional
     public void expireReservation(UUID reservationId) {
         inventoryReservationRepository.findByIdForUpdate(reservationId)
                 .filter(InventoryReservationEntity::isReserved)

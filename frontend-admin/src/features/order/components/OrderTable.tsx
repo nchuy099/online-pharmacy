@@ -50,8 +50,9 @@ const OrderTable = React.memo(({ orders, isLoading = false }: OrderTableProps) =
             header: 'Trạng thái',
             render: (v) => {
                 const colors = {
-                    PENDING: 'bg-yellow-100 text-yellow-700',
                     PENDING_PAYMENT: 'bg-amber-100 text-amber-700',
+                    PENDING_CONFIRMATION: 'bg-yellow-100 text-yellow-700',
+                    CONFIRMED: 'bg-blue-100 text-blue-700',
                     PROCESSING: 'bg-indigo-100 text-indigo-700',
                     SHIPPING: 'bg-purple-100 text-purple-700',
                     DELIVERED: 'bg-green-100 text-green-700',
@@ -60,8 +61,9 @@ const OrderTable = React.memo(({ orders, isLoading = false }: OrderTableProps) =
                     CANCELLED: 'bg-red-100 text-red-700'
                 };
                 const labels = {
-                    PENDING: 'Chờ xác nhận',
                     PENDING_PAYMENT: 'Chờ thanh toán',
+                    PENDING_CONFIRMATION: 'Chờ xác nhận',
+                    CONFIRMED: 'Đã xác nhận',
                     PROCESSING: 'Đang xử lý',
                     SHIPPING: 'Đang giao',
                     DELIVERED: 'Đã giao',

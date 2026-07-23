@@ -78,7 +78,7 @@ public class AnalyticsService {
 
         // 2. Order Stats
         AnalyticsStatsResponse.OrderStats orderStats = AnalyticsStatsResponse.OrderStats.builder()
-                .pendingOrders(orderRepository.countByStatus(OrderStatus.PENDING))
+                .pendingOrders(orderRepository.countByStatus(OrderStatus.PENDING_CONFIRMATION))
                 .shippingOrders(orderRepository.countByStatus(OrderStatus.SHIPPING))
                 .completedOrders(orderRepository.countByStatus(OrderStatus.DELIVERED))
                 .cancelledOrders(orderRepository.countByStatus(OrderStatus.CANCELLED))

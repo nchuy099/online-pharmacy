@@ -26,8 +26,9 @@ const OrderPage = () => {
             value: status,
             onChange: setStatus,
             options: [
-                { label: 'Chờ xác nhận', value: 'PENDING' },
                 { label: 'Chờ thanh toán', value: 'PENDING_PAYMENT' },
+                { label: 'Chờ xác nhận', value: 'PENDING_CONFIRMATION' },
+                { label: 'Đã xác nhận', value: 'CONFIRMED' },
                 { label: 'Đang xử lý', value: 'PROCESSING' },
                 { label: 'Đang giao', value: 'SHIPPING' },
                 { label: 'Đã giao', value: 'DELIVERED' },

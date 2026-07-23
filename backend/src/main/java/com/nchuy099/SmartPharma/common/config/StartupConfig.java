@@ -133,6 +133,7 @@ public class StartupConfig {
         PermissionEntity orderShip = upsertPermission(RbacPermissions.SHIP_ORDER, "Ship orders", RoleType.ADMIN, false, true);
         PermissionEntity orderReturnManage = upsertPermission(RbacPermissions.MANAGE_ORDER_RETURN, "Manage order return requests", RoleType.ADMIN, false, true);
         PermissionEntity paymentRead = upsertPermission(RbacPermissions.READ_PAYMENT, "Read payment details", RoleType.ADMIN, true, false);
+        PermissionEntity paymentCollectionConfirm = upsertPermission(RbacPermissions.CONFIRM_PAYMENT_COLLECTION, "Confirm COD payment collection", RoleType.ADMIN, false, true);
 
         PermissionEntity analyticsRead = upsertPermission(RbacPermissions.READ_ANALYTICS, "Read analytics dashboard", RoleType.ADMIN, true, false);
         PermissionEntity flashSaleRead = upsertPermission(RbacPermissions.READ_FLASH_SALE, "Read flash sale campaigns", RoleType.ADMIN, false, true);
@@ -152,7 +153,7 @@ public class StartupConfig {
                 productRead, productCreate, productUpdate, productDelete, productImageUpload,
                 categoryRead, categoryCreate, categoryUpdate, categoryDelete,
                 inventoryRead, inventoryImport,
-                orderRead, orderConfirm, orderShip, orderReturnManage, paymentRead,
+                orderRead, orderConfirm, orderShip, orderReturnManage, paymentRead, paymentCollectionConfirm,
                 analyticsRead,
                 flashSaleRead, flashSaleManage,
                 userRead, userCreate, userUpdate, userRoleAssign, userStatusUpdate, userPasswordReset,
@@ -162,7 +163,7 @@ public class StartupConfig {
                 productRead, productCreate, productUpdate, productDelete, productImageUpload,
                 categoryRead, categoryCreate, categoryUpdate, categoryDelete,
                 inventoryRead, inventoryImport,
-                orderRead, orderConfirm, orderShip, orderReturnManage);
+                orderRead, orderConfirm, orderShip, orderReturnManage, paymentCollectionConfirm);
     }
 
     private PermissionEntity upsertPermission(String name, String description, RoleType roleType, boolean critical, boolean assignable) {
