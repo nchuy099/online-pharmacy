@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,9 +46,11 @@ public class OrderController {
 
     @PostMapping("/create")
     @Operation(summary = "Create order", description = "Consumes a one-time checkout quote and creates the order if the quote is still valid.")
-    public OrderResponse createOrder(@RequestBody @jakarta.validation.Valid OrderCreateRequest req) {
+    public OrderResponse createOrder(
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @RequestBody @jakarta.validation.Valid OrderCreateRequest req) {
         log.info("Order create request received");
-        return createOrderUseCase.create(req);
+        return createOrderUseCase.create(req, idempotencyKey);
     }
 
     @PostMapping("/preview")

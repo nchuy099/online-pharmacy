@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class ConfirmOrderUseCase {
+public class ProcessOrderUseCase {
 
     private final OrderRepository orderRepository;
     private final OrderStatusPolicy orderStatusPolicy;
@@ -25,12 +25,12 @@ public class ConfirmOrderUseCase {
     private final OrderEventPublisher orderEventPublisher;
 
     @Transactional
-    public OrderResponse confirm(UUID orderId) {
+    public OrderResponse process(UUID orderId) {
         var order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Order not found"));
-        orderStatusPolicy.confirm(order);
+        orderStatusPolicy.process(order);
         orderRepository.save(order);
-        orderEventPublisher.publishConfirmed(order);
+        orderEventPublisher.publishProcessingStarted(order);
         return orderMapper.toOrderResponse(order);
     }
 }

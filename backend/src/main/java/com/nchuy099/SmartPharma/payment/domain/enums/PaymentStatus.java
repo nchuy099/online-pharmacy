@@ -7,5 +7,6 @@ public enum PaymentStatus {
     COMPLETED,
     FAILED,
     CANCELLED, // nguoi dung chu dong huy
+    REFUND_PENDING,
     REFUNDED,
 }

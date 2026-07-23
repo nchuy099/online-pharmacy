@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import com.nchuy099.SmartPharma.common.exception.AppException;
 import com.nchuy099.SmartPharma.common.exception.ErrorCode;
@@ -60,9 +61,23 @@ public class CreateOrderUseCase {
 
     @Transactional
     public OrderResponse create(OrderCreateRequest request) {
+        return create(request, null);
+    }
+
+    @Transactional
+    public OrderResponse create(OrderCreateRequest request, String rawIdempotencyKey) {
         log.info("Processing order create request for checkout quote: {}", request.getCheckoutQuoteId());
 
         UUID userId = securityUtils.getCurrentUserId();
+        String idempotencyKey = normalizeIdempotencyKey(rawIdempotencyKey);
+        if (idempotencyKey != null) {
+            var existingOrder = orderRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey);
+            if (existingOrder.isPresent()) {
+                log.info("Returning existing order for user {} and idempotency key {}", userId, idempotencyKey);
+                return orderMapper.toOrderResponse(existingOrder.get());
+            }
+        }
+
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "User not found"));
         PaymentMethod paymentMethod = parsePaymentMethod(request.getPaymentMethod());
@@ -78,6 +93,7 @@ public class CreateOrderUseCase {
                     .prepareForCreate(request, userId);
 
             OrderEntity order = buildOrder(user, request, paymentMethod, context);
+            order.setIdempotencyKey(idempotencyKey);
             applyShipping(order, quote, address);
 
             orderRepository.saveAndFlush(order);
@@ -148,6 +164,17 @@ public class CreateOrderUseCase {
         } catch (Exception ex) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Invalid order mode: " + rawMode);
         }
+    }
+
+    private String normalizeIdempotencyKey(String rawKey) {
+        if (!StringUtils.hasText(rawKey)) {
+            return null;
+        }
+        String key = rawKey.trim();
+        if (key.length() > 255) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Idempotency-Key is too long");
+        }
+        return key;
     }
 
     private void reserveOrderLots(OrderEntity order, UUID createdBy) {

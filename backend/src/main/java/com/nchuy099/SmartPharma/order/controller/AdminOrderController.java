@@ -9,13 +9,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestBody;
 
+import com.nchuy099.SmartPharma.order.application.cancel.AdminCancelOrderUseCase;
 import com.nchuy099.SmartPharma.user.enums.RbacPermissions;
 import com.nchuy099.SmartPharma.order.application.command.ConfirmOrderUseCase;
+import com.nchuy099.SmartPharma.order.application.command.ProcessOrderUseCase;
 import com.nchuy099.SmartPharma.order.application.command.ShipOrderUseCase;
 import com.nchuy099.SmartPharma.order.application.query.AdminOrderQueryService;
 import com.nchuy099.SmartPharma.order.application.returnrequest.OrderReturnRequestService;
 import com.nchuy099.SmartPharma.payment.application.query.PaymentQueryService;
+import com.nchuy099.SmartPharma.order.dto.request.OrderCancelRequest;
 import com.nchuy099.SmartPharma.order.dto.request.ReviewOrderReturnRequest;
 import com.nchuy099.SmartPharma.order.dto.response.OrderPageResponse;
 import com.nchuy099.SmartPharma.order.dto.response.OrderResponse;
@@ -33,7 +37,9 @@ public class AdminOrderController {
 
     private final AdminOrderQueryService adminOrderQueryService;
     private final PaymentQueryService paymentQueryService;
+    private final AdminCancelOrderUseCase adminCancelOrderUseCase;
     private final ConfirmOrderUseCase confirmOrderUseCase;
+    private final ProcessOrderUseCase processOrderUseCase;
     private final ShipOrderUseCase shipOrderUseCase;
     private final OrderReturnRequestService orderReturnRequestService;
 
@@ -67,6 +73,21 @@ public class AdminOrderController {
     public OrderResponse confirmOrder(@PathVariable(name = "id") String id) {
         log.info("Confirm order request received for id: {}", id);
         return confirmOrderUseCase.confirm(UUID.fromString(id));
+    }
+
+    @PostMapping("/{id}/process")
+    @PreAuthorize("hasAuthority(T(com.nchuy099.SmartPharma.user.enums.RbacPermissions).PROCESS_ORDER)")
+    public OrderResponse processOrder(@PathVariable(name = "id") String id) {
+        log.info("Process order request received for id: {}", id);
+        return processOrderUseCase.process(UUID.fromString(id));
+    }
+
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAuthority(T(com.nchuy099.SmartPharma.user.enums.RbacPermissions).CANCEL_CUSTOMER_ORDER)")
+    public void cancelOrder(@PathVariable(name = "id") String id,
+            @RequestBody(required = false) OrderCancelRequest req) {
+        log.info("Admin cancel order request received for id: {}", id);
+        adminCancelOrderUseCase.cancel(UUID.fromString(id), req != null ? req : new OrderCancelRequest());
     }
 
     @PostMapping("/{id}/ship")

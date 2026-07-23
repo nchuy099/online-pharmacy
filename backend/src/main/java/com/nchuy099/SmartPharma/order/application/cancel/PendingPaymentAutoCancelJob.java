@@ -32,6 +32,7 @@ public class PendingPaymentAutoCancelJob {
     private long pendingPaymentTimeoutSeconds;
 
     @Scheduled(fixedDelayString = "${order.auto-cancel.pending-payment-scan-ms:60000}")
+    @Transactional
     public void cancelExpiredPendingPayments() {
         Instant cutoff = Instant.now().minusSeconds(pendingPaymentTimeoutSeconds);
         List<UUID> expiredOrderIds = orderRepository.findIdsByStatusAndCreatedAtBefore(OrderStatus.PENDING_PAYMENT, cutoff);

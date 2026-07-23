@@ -93,6 +93,28 @@ public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
 
     Optional<OrderEntity> findByOrderCode(String orderCode);
 
+    @Query("""
+            select o from OrderEntity o
+            join fetch o.user
+            left join fetch o.payment
+            where o.id = :id
+            """)
+    Optional<OrderEntity> findByIdWithUserForNotification(@Param("id") UUID id);
+
+    @Query("""
+            select distinct o from OrderEntity o
+            left join fetch o.items item
+            left join fetch item.variant v
+            left join fetch v.inventory
+            left join fetch item.product
+            left join fetch item.review
+            left join fetch o.payment
+            where o.user.id = :userId
+              and o.idempotencyKey = :idempotencyKey
+            """)
+    Optional<OrderEntity> findByUserIdAndIdempotencyKey(@Param("userId") UUID userId,
+                                                        @Param("idempotencyKey") String idempotencyKey);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select o from OrderEntity o

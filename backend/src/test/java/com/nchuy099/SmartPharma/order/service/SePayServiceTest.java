@@ -20,6 +20,7 @@ import com.nchuy099.SmartPharma.order.domain.entity.OrderEntity;
 import com.nchuy099.SmartPharma.order.domain.enums.OrderStatus;
 import com.nchuy099.SmartPharma.order.domain.policy.OrderStatusPolicy;
 import com.nchuy099.SmartPharma.order.domain.repository.OrderRepository;
+import com.nchuy099.SmartPharma.order.infrastructure.event.OrderEventPublisher;
 import com.nchuy099.SmartPharma.payment.application.webhook.ProcessSePayWebhookUseCase;
 import com.nchuy099.SmartPharma.payment.domain.entity.PaymentEntity;
 import com.nchuy099.SmartPharma.payment.domain.enums.PaymentMethod;
@@ -32,6 +33,7 @@ class SePayServiceTest {
     private OrderRepository orderRepository;
     private PaymentRepository paymentRepository;
     private OrderStatusPolicy orderStatusPolicy;
+    private OrderEventPublisher orderEventPublisher;
     private ProcessSePayWebhookUseCase processSePayWebhookUseCase;
 
     @BeforeEach
@@ -39,9 +41,10 @@ class SePayServiceTest {
         orderRepository = mock(OrderRepository.class);
         paymentRepository = mock(PaymentRepository.class);
         orderStatusPolicy = new OrderStatusPolicy();
+        orderEventPublisher = mock(OrderEventPublisher.class);
 
         processSePayWebhookUseCase = new ProcessSePayWebhookUseCase(orderRepository, paymentRepository,
-                orderStatusPolicy);
+                orderStatusPolicy, orderEventPublisher);
         ReflectionTestUtils.setField(processSePayWebhookUseCase, "sepayApiKey", "secret");
         ReflectionTestUtils.setField(processSePayWebhookUseCase, "accountNumber", "0123499999");
         ReflectionTestUtils.setField(processSePayWebhookUseCase, "bankName", "MBBank");

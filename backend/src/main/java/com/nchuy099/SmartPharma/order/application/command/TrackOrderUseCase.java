@@ -8,6 +8,8 @@ import com.nchuy099.SmartPharma.order.domain.policy.OrderStatusPolicy;
 import com.nchuy099.SmartPharma.order.domain.repository.OrderRepository;
 import com.nchuy099.SmartPharma.order.dto.mapper.OrderMapper;
 import com.nchuy099.SmartPharma.order.dto.response.OrderResponse;
+import com.nchuy099.SmartPharma.order.domain.enums.OrderStatus;
+import com.nchuy099.SmartPharma.order.infrastructure.event.OrderEventPublisher;
 import com.nchuy099.SmartPharma.order.infrastructure.shipping.ShippingProvider;
 
 import jakarta.transaction.Transactional;
@@ -21,6 +23,7 @@ public class TrackOrderUseCase {
     private final ShippingProvider shippingProvider;
     private final OrderStatusPolicy orderStatusPolicy;
     private final OrderMapper orderMapper;
+    private final OrderEventPublisher orderEventPublisher;
 
     @Transactional
     public OrderResponse track(String ghnOrderCode) {
@@ -28,8 +31,12 @@ public class TrackOrderUseCase {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Order not found with GHN code: " + ghnOrderCode));
         var ghnDetail = shippingProvider.getShipmentDetails(ghnOrderCode);
         if (ghnDetail != null && ghnDetail.getStatus() != null) {
+            OrderStatus previousStatus = order.getStatus();
             orderStatusPolicy.syncFromGhn(order, ghnDetail.getStatus());
             orderRepository.save(order);
+            if (previousStatus != OrderStatus.DELIVERED && order.getStatus() == OrderStatus.DELIVERED) {
+                orderEventPublisher.publishDelivered(order);
+            }
         }
         return orderMapper.toOrderResponseWithLogs(order, ghnDetail);
     }

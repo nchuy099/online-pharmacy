@@ -35,6 +35,7 @@ import com.nchuy099.SmartPharma.order.dto.request.CreateOrderReturnRequest;
 import com.nchuy099.SmartPharma.order.dto.request.ReviewOrderReturnRequest;
 import com.nchuy099.SmartPharma.order.dto.response.OrderResponse;
 import com.nchuy099.SmartPharma.order.dto.response.OrderReturnEvidenceUploadUrlResponse;
+import com.nchuy099.SmartPharma.order.infrastructure.event.OrderEventPublisher;
 import com.nchuy099.SmartPharma.payment.domain.enums.PaymentStatus;
 import com.nchuy099.SmartPharma.user.repository.UserRepository;
 
@@ -57,6 +58,7 @@ public class OrderReturnRequestService {
     private final InventoryCommandService inventoryCommandService;
     private final MediaService mediaService;
     private final OrderMapper orderMapper;
+    private final OrderEventPublisher orderEventPublisher;
 
     @Transactional
     public OrderResponse create(UUID orderId, CreateOrderReturnRequest request) {
@@ -84,6 +86,7 @@ public class OrderReturnRequestService {
         orderStatusPolicy.requestReturn(order);
         orderReturnRequestRepository.save(returnRequest);
         orderRepository.save(order);
+        orderEventPublisher.publishReturnRequested(order);
         return orderMapper.toOrderResponse(order, returnRequest);
     }
 
@@ -105,12 +108,13 @@ public class OrderReturnRequestService {
         if (order.getPayment() != null
                 && (order.getPayment().getStatus() == PaymentStatus.COMPLETED
                         || order.getPayment().getStatus() == PaymentStatus.PARTIAL)) {
-            order.getPayment().setStatus(PaymentStatus.REFUNDED);
+            order.getPayment().setStatus(PaymentStatus.REFUND_PENDING);
         }
         returnExportedInventory(order, reviewerId);
 
         orderReturnRequestRepository.save(returnRequest);
         orderRepository.save(order);
+        orderEventPublisher.publishReturnApproved(order);
         return orderMapper.toOrderResponse(order, returnRequest);
     }
 
@@ -131,6 +135,7 @@ public class OrderReturnRequestService {
 
         orderReturnRequestRepository.save(returnRequest);
         orderRepository.save(order);
+        orderEventPublisher.publishReturnRejected(order);
         return orderMapper.toOrderResponse(order, returnRequest);
     }
 

@@ -26,7 +26,11 @@ public class OrderStatusPolicy {
             OrderStatus.RETURNED);
 
     public void confirm(OrderEntity order) {
-        transition(order, EnumSet.of(OrderStatus.PENDING), OrderStatus.PROCESSING, "confirm");
+        transition(order, EnumSet.of(OrderStatus.PENDING), OrderStatus.CONFIRMED, "confirm");
+    }
+
+    public void process(OrderEntity order) {
+        transition(order, EnumSet.of(OrderStatus.CONFIRMED), OrderStatus.PROCESSING, "process");
     }
 
     public void ship(OrderEntity order) {
@@ -38,7 +42,8 @@ public class OrderStatusPolicy {
     }
 
     public void cancel(OrderEntity order) {
-        transition(order, EnumSet.of(OrderStatus.PENDING, OrderStatus.PENDING_PAYMENT), OrderStatus.CANCELLED, "cancel");
+        transition(order, EnumSet.of(OrderStatus.PENDING, OrderStatus.PENDING_PAYMENT, OrderStatus.CONFIRMED,
+                OrderStatus.PROCESSING), OrderStatus.CANCELLED, "cancel");
     }
 
     public void requestReturn(OrderEntity order) {
@@ -136,10 +141,11 @@ public class OrderStatusPolicy {
         return switch (status) {
             case PENDING -> 0;
             case PENDING_PAYMENT -> 1;
-            case PROCESSING -> 2;
-            case SHIPPING -> 3;
-            case DELIVERED -> 4;
-            case RETURN_REQUESTED -> 5;
+            case CONFIRMED -> 2;
+            case PROCESSING -> 3;
+            case SHIPPING -> 4;
+            case DELIVERED -> 5;
+            case RETURN_REQUESTED -> 6;
             case RETURNED, CANCELLED -> 6;
         };
     }

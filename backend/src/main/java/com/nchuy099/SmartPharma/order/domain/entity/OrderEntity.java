@@ -43,6 +43,8 @@ public class OrderEntity extends AbstractEntity {
     @Column(unique = true)
     String orderCode;
 
+    String idempotencyKey;
+
     String note;
 
     String shippingFullName;

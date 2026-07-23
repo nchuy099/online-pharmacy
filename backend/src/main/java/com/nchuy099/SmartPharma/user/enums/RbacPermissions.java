@@ -17,8 +17,10 @@ public final class RbacPermissions {
     public static final String IMPORT_INVENTORY = "IMPORT_INVENTORY";
     public static final String READ_INVENTORY = "READ_INVENTORY";
 
+    public static final String CANCEL_CUSTOMER_ORDER = "CANCEL_CUSTOMER_ORDER";
     public static final String CONFIRM_ORDER = "CONFIRM_ORDER";
     public static final String MANAGE_ORDER_RETURN = "MANAGE_ORDER_RETURN";
+    public static final String PROCESS_ORDER = "PROCESS_ORDER";
     public static final String READ_ORDER = "READ_ORDER";
     public static final String SHIP_ORDER = "SHIP_ORDER";
 

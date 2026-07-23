@@ -59,7 +59,10 @@ public class OrderCancellationService {
         }
 
         PaymentEntity payment = order.getPayment();
-        if (payment != null && payment.getStatus() != PaymentStatus.COMPLETED && payment.getStatus() != PaymentStatus.REFUNDED) {
+        if (payment != null && (payment.getStatus() == PaymentStatus.COMPLETED || payment.getStatus() == PaymentStatus.PARTIAL)) {
+            payment.setStatus(PaymentStatus.REFUND_PENDING);
+        } else if (payment != null && payment.getStatus() != PaymentStatus.REFUNDED
+                && payment.getStatus() != PaymentStatus.REFUND_PENDING) {
             payment.setStatus(PaymentStatus.CANCELLED);
         }
 
