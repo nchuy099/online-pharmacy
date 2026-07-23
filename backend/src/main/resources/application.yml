@@ -28,6 +28,18 @@ spring:
     locations: classpath:db/migration/postgresql
     baseline-on-migrate: true
     baseline-version: '0'
+
+  mail:
+    host: smtp.gmail.com
+    port: ${smtp_port:${SMTP_PORT:465}}
+    username: ${EMAIL_USER:}
+    password: ${EMAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
     
 
   security:
@@ -62,6 +74,10 @@ jwt:
 
 send-mail-service:
   url: ${SEND_RESET_PASS_MAIL_API_URL}
+
+notification:
+  gmail:
+    from: ${NOTIFICATION_GMAIL_FROM:${EMAIL_USER:}}
 
 frontend:
   url: ${FRONTEND_URL}
