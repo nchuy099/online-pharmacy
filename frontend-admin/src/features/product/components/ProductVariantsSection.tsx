@@ -18,6 +18,7 @@ const ProductVariantsSection: React.FC<Props> = ({ productId, variants, unitType
     const [isFormOpen, setIsFormOpen] = React.useState(false);
     const [editingVariantId, setEditingVariantId] = React.useState<string | null>(null);
     const [form, setForm] = React.useState({
+        sku: '',
         unitType: '',
         specification: '',
         salePrice: '',
@@ -37,6 +38,7 @@ const ProductVariantsSection: React.FC<Props> = ({ productId, variants, unitType
         setIsFormOpen(false);
         setEditingVariantId(null);
         setForm({
+            sku: '',
             unitType: '',
             specification: '',
             salePrice: '',
@@ -49,6 +51,7 @@ const ProductVariantsSection: React.FC<Props> = ({ productId, variants, unitType
         setIsFormOpen(true);
         setEditingVariantId(null);
         setForm({
+            sku: '',
             unitType: '',
             specification: '',
             salePrice: '',
@@ -61,6 +64,7 @@ const ProductVariantsSection: React.FC<Props> = ({ productId, variants, unitType
         setIsFormOpen(true);
         setEditingVariantId(variant.id);
         setForm({
+            sku: variant.sku || '',
             unitType: variant.unitType || '',
             specification: variant.specification || '',
             salePrice: String(variant.salePrice ?? ''),
@@ -83,6 +87,7 @@ const ProductVariantsSection: React.FC<Props> = ({ productId, variants, unitType
         try {
             if (editingVariantId) {
                 await updateVariant(productId, editingVariantId, {
+                    sku: form.sku.trim() || undefined,
                     unitType: form.unitType.trim(),
                     specification: form.specification.trim(),
                     salePrice: price,
@@ -92,6 +97,7 @@ const ProductVariantsSection: React.FC<Props> = ({ productId, variants, unitType
                 notificationBus.success('Cập nhật phân loại thành công');
             } else {
                 await createVariant(productId, {
+                    sku: form.sku.trim() || undefined,
                     unitType: form.unitType.trim(),
                     specification: form.specification.trim(),
                     salePrice: price,
@@ -138,7 +144,18 @@ const ProductVariantsSection: React.FC<Props> = ({ productId, variants, unitType
 
                 {isFormOpen && (
                 <div className="mb-4 border border-gray-200 rounded-xl p-3 bg-gray-50/40">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                        <div className="space-y-1">
+                            <label className="block text-xs font-semibold text-gray-600">SKU</label>
+                            <input
+                                type="text"
+                                value={form.sku}
+                                onChange={(e) => setForm((prev) => ({ ...prev, sku: e.target.value }))}
+                                className="w-full border-gray-200 rounded-lg px-3 py-2 text-sm"
+                                placeholder="Tự sinh nếu bỏ trống"
+                                disabled={isSubmitting}
+                            />
+                        </div>
                         <div className="space-y-1">
                             <label className="block text-xs font-semibold text-gray-600">Đơn vị</label>
                             <select

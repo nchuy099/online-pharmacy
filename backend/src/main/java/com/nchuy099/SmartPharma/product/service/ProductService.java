@@ -119,7 +119,7 @@ public class ProductService {
                     .mapToObj(index -> {
                         CreateProductRequest.VariantRequest v = req.getVariants().get(index);
                         return ProductVariantEntity.builder()
-                                .sku(generateVariantSku(productEntity.getCode(), index + 1))
+                                .sku(resolveRequestedSku(v.getSku(), productEntity.getCode(), index + 1))
                                 .unitType(resolveUnitType(v))
                                 .specification(normalizePlainText(v.getSpecification()))
                                 .salePrice(v.getSalePrice())
@@ -218,7 +218,7 @@ public class ProductService {
                         .mapToObj(index -> {
                             CreateProductRequest.VariantRequest v = req.getVariants().get(index);
                             return ProductVariantEntity.builder()
-                                    .sku(generateVariantSku(productEntity.getCode(), index + 1))
+                                    .sku(resolveRequestedSku(v.getSku(), productEntity.getCode(), index + 1))
                                     .unitType(resolveUnitType(v))
                                     .specification(normalizePlainText(v.getSpecification()))
                                     .salePrice(v.getSalePrice())
@@ -406,7 +406,7 @@ public class ProductService {
 
         ProductVariantEntity variant = ProductVariantEntity.builder()
                 .product(productEntity)
-                .sku(generateNextVariantSku(productEntity.getCode(), usedSkus))
+                .sku(resolveRequestedSku(req.getSku(), productEntity.getCode(), usedSkus))
                 .unitType(resolveUnitType(req.getUnitType(), req.getUnit()))
                 .specification(normalizePlainText(req.getSpecification()))
                 .salePrice(req.getSalePrice())
@@ -437,6 +437,9 @@ public class ProductService {
 
         if (org.springframework.util.StringUtils.hasText(req.getUnitType()) || org.springframework.util.StringUtils.hasText(req.getUnit())) {
             variant.setUnitType(resolveUnitType(req.getUnitType(), req.getUnit()));
+        }
+        if (org.springframework.util.StringUtils.hasText(req.getSku())) {
+            variant.setSku(normalizeSku(req.getSku()));
         }
         if (req.getSpecification() != null) {
             variant.setSpecification(normalizePlainText(req.getSpecification()));
@@ -772,6 +775,24 @@ public class ProductService {
         throw new AppException(ErrorCode.BAD_REQUEST, "Variant count exceeds 999 for one product");
     }
 
+    private String resolveRequestedSku(String requestedSku, String productCode, int sequence) {
+        if (org.springframework.util.StringUtils.hasText(requestedSku)) {
+            return normalizeSku(requestedSku);
+        }
+        return generateVariantSku(productCode, sequence);
+    }
+
+    private String resolveRequestedSku(String requestedSku, String productCode, Set<String> usedSkus) {
+        if (org.springframework.util.StringUtils.hasText(requestedSku)) {
+            return normalizeSku(requestedSku);
+        }
+        return generateNextVariantSku(productCode, usedSkus);
+    }
+
+    private String normalizeSku(String sku) {
+        return sku.trim().toUpperCase(java.util.Locale.ROOT);
+    }
+
     private void upsertVariants(ProductEntity productEntity, List<CreateProductRequest.VariantRequest> requestedVariants) {
         List<ProductVariantEntity> existingVariants = productEntity.getVariants();
         Map<UUID, ProductVariantEntity> existingById = new HashMap<>();
@@ -817,7 +838,7 @@ public class ProductService {
                     }
                 } else {
                     targetVariant = ProductVariantEntity.builder()
-                            .sku(generateNextVariantSku(productEntity.getCode(), usedSkus))
+                            .sku(resolveRequestedSku(requestedVariant.getSku(), productEntity.getCode(), usedSkus))
                             .product(productEntity)
                             .build();
                     existingVariants.add(targetVariant);
@@ -825,6 +846,9 @@ public class ProductService {
                 }
             }
 
+            if (org.springframework.util.StringUtils.hasText(requestedVariant.getSku())) {
+                targetVariant.setSku(normalizeSku(requestedVariant.getSku()));
+            }
             targetVariant.setUnitType(resolveUnitType(requestedVariant));
             targetVariant.setSpecification(normalizePlainText(requestedVariant.getSpecification()));
             targetVariant.setSalePrice(requestedVariant.getSalePrice());

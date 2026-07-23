@@ -17,6 +17,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateProductVariantRequest {
+    String sku;
     String unitType;
     String unit;
     String specification;

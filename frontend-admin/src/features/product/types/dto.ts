@@ -59,6 +59,7 @@ export interface UpdateProductCategoriesRequestDto {
 }
 
 export interface CreateProductVariantRequestDto {
+    sku?: string;
     unitType: string;
     unit?: string;
     specification?: string;
@@ -69,6 +70,7 @@ export interface CreateProductVariantRequestDto {
 }
 
 export interface UpdateProductVariantRequestDto {
+    sku?: string;
     unitType?: string;
     unit?: string;
     specification?: string;
