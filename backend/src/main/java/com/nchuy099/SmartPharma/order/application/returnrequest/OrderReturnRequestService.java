@@ -16,18 +16,18 @@ import com.nchuy099.SmartPharma.common.exception.AppException;
 import com.nchuy099.SmartPharma.common.exception.ErrorCode;
 import com.nchuy099.SmartPharma.common.utils.SecurityUtils;
 import com.nchuy099.SmartPharma.inventory.domain.enums.InventoryReferenceType;
+import com.nchuy099.SmartPharma.inventory.entity.InventoryReservationItemEntity;
 import com.nchuy099.SmartPharma.inventory.model.ReservationAllocation;
+import com.nchuy099.SmartPharma.inventory.repository.InventoryReservationItemRepository;
 import com.nchuy099.SmartPharma.inventory.service.InventoryCommandService;
 import com.nchuy099.SmartPharma.media.domain.enums.UploadType;
 import com.nchuy099.SmartPharma.media.service.MediaService;
 import com.nchuy099.SmartPharma.order.domain.entity.OrderEntity;
-import com.nchuy099.SmartPharma.order.domain.entity.OrderItemInventoryAllocationEntity;
 import com.nchuy099.SmartPharma.order.domain.entity.OrderReturnRequestEntity;
 import com.nchuy099.SmartPharma.order.domain.entity.OrderReturnRequestImageEntity;
 import com.nchuy099.SmartPharma.order.domain.enums.OrderReturnRequestStatus;
 import com.nchuy099.SmartPharma.order.domain.enums.OrderStatus;
 import com.nchuy099.SmartPharma.order.domain.policy.OrderStatusPolicy;
-import com.nchuy099.SmartPharma.order.domain.repository.OrderItemInventoryAllocationRepository;
 import com.nchuy099.SmartPharma.order.domain.repository.OrderRepository;
 import com.nchuy099.SmartPharma.order.domain.repository.OrderReturnRequestRepository;
 import com.nchuy099.SmartPharma.order.dto.mapper.OrderMapper;
@@ -52,7 +52,7 @@ public class OrderReturnRequestService {
     private final SecurityUtils securityUtils;
     private final OrderRepository orderRepository;
     private final OrderReturnRequestRepository orderReturnRequestRepository;
-    private final OrderItemInventoryAllocationRepository orderItemInventoryAllocationRepository;
+    private final InventoryReservationItemRepository inventoryReservationItemRepository;
     private final UserRepository userRepository;
     private final OrderStatusPolicy orderStatusPolicy;
     private final InventoryCommandService inventoryCommandService;
@@ -196,12 +196,12 @@ public class OrderReturnRequestService {
     }
 
     private void returnExportedInventory(OrderEntity order, UUID reviewerId) {
-        List<OrderItemInventoryAllocationEntity> allocations = orderItemInventoryAllocationRepository.findByOrderId(order.getId());
-        Map<UUID, List<OrderItemInventoryAllocationEntity>> byVariant = allocations.stream()
+        List<InventoryReservationItemEntity> allocations = inventoryReservationItemRepository.findByOrderId(order.getId());
+        Map<UUID, List<InventoryReservationItemEntity>> byVariant = allocations.stream()
                 .filter(allocation -> allocation.getExportedQuantity() != null && allocation.getExportedQuantity() > 0)
                 .collect(Collectors.groupingBy(allocation -> allocation.getOrderItem().getVariant().getId()));
 
-        for (Map.Entry<UUID, List<OrderItemInventoryAllocationEntity>> entry : byVariant.entrySet()) {
+        for (Map.Entry<UUID, List<InventoryReservationItemEntity>> entry : byVariant.entrySet()) {
             List<ReservationAllocation> returnedAllocations = entry.getValue().stream()
                     .map(allocation -> new ReservationAllocation(
                             allocation.getLot().getId(),

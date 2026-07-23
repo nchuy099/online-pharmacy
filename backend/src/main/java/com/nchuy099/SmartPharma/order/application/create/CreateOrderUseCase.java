@@ -1,7 +1,6 @@
 package com.nchuy099.SmartPharma.order.application.create;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -26,13 +25,8 @@ import com.nchuy099.SmartPharma.user.entity.UserEntity;
 import com.nchuy099.SmartPharma.user.repository.AddressRepository;
 import com.nchuy099.SmartPharma.user.repository.UserRepository;
 import com.nchuy099.SmartPharma.flashsale.service.FlashSaleService;
-import com.nchuy099.SmartPharma.inventory.domain.enums.InventoryReferenceType;
-import com.nchuy099.SmartPharma.inventory.model.ReservationAllocation;
-import com.nchuy099.SmartPharma.inventory.repository.InventoryLotRepository;
-import com.nchuy099.SmartPharma.inventory.service.InventoryCommandService;
+import com.nchuy099.SmartPharma.inventory.service.InventoryReservationService;
 import com.nchuy099.SmartPharma.cart.service.CartService;
-import com.nchuy099.SmartPharma.order.domain.entity.OrderItemInventoryAllocationEntity;
-import com.nchuy099.SmartPharma.order.domain.repository.OrderItemInventoryAllocationRepository;
 import com.nchuy099.SmartPharma.payment.domain.enums.PaymentMethod;
 
 import jakarta.transaction.Transactional;
@@ -55,9 +49,7 @@ public class CreateOrderUseCase {
     private final FlashSaleService flashSaleService;
     private final CartService cartService;
     private final OrderEventPublisher orderEventPublisher;
-    private final InventoryCommandService inventoryCommandService;
-    private final InventoryLotRepository inventoryLotRepository;
-    private final OrderItemInventoryAllocationRepository orderItemInventoryAllocationRepository;
+    private final InventoryReservationService inventoryReservationService;
 
     @Transactional
     public OrderResponse create(OrderCreateRequest request) {
@@ -97,7 +89,7 @@ public class CreateOrderUseCase {
             applyShipping(order, quote, address);
 
             orderRepository.saveAndFlush(order);
-            reserveOrderLots(order, userId);
+            inventoryReservationService.reserveOrder(order, userId);
             if (context.flashSaleReservationId() != null && mode == OrderMode.BUY_NOW) {
                 flashSaleService.confirmReservation(context.flashSaleReservationId(), userId, order.getId());
             }
@@ -177,27 +169,4 @@ public class CreateOrderUseCase {
         return key;
     }
 
-    private void reserveOrderLots(OrderEntity order, UUID createdBy) {
-        order.getItems().forEach(item -> {
-            List<ReservationAllocation> allocations = inventoryCommandService.reserveStock(
-                    item.getVariant().getId(),
-                    item.getQuantity(),
-                    InventoryReferenceType.ORDER_ITEM,
-                    item.getId().toString(),
-                    createdBy);
-            BigDecimal totalCost = BigDecimal.ZERO;
-            for (ReservationAllocation allocation : allocations) {
-                orderItemInventoryAllocationRepository.save(OrderItemInventoryAllocationEntity.builder()
-                        .orderItem(item)
-                        .lot(inventoryLotRepository.getReferenceById(allocation.lotId()))
-                        .reservedQuantity(allocation.quantity())
-                        .exportedQuantity(0)
-                        .build());
-                totalCost = totalCost.add(allocation.unitCost().multiply(BigDecimal.valueOf(allocation.quantity())));
-            }
-            if (item.getQuantity() > 0) {
-                item.setUnitCost(totalCost.divide(BigDecimal.valueOf(item.getQuantity()), 2, java.math.RoundingMode.HALF_UP));
-            }
-        });
-    }
 }

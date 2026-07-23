@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.nchuy099.SmartPharma.common.entity.AbstractEntity;
+import com.nchuy099.SmartPharma.inventory.entity.InventoryReservationItemEntity;
 import com.nchuy099.SmartPharma.product.entity.ProductEntity;
 import com.nchuy099.SmartPharma.product.entity.ProductVariantEntity;
 import com.nchuy099.SmartPharma.review.entity.ReviewEntity;
@@ -76,7 +77,7 @@ public class OrderItemEntity extends AbstractEntity {
 
     @OneToMany(mappedBy = "orderItem", fetch = FetchType.LAZY)
     @Builder.Default
-    List<OrderItemInventoryAllocationEntity> inventoryAllocations = new ArrayList<>();
+    List<InventoryReservationItemEntity> inventoryReservationItems = new ArrayList<>();
 
     public BigDecimal calculateTotalPrice() {
         if (this.totalPrice == null) {

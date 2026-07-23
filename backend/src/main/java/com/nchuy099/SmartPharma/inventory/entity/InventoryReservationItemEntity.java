@@ -1,15 +1,17 @@
-package com.nchuy099.SmartPharma.order.domain.entity;
+package com.nchuy099.SmartPharma.inventory.entity;
 
 import com.nchuy099.SmartPharma.common.entity.AbstractEntity;
 import com.nchuy099.SmartPharma.common.exception.AppException;
 import com.nchuy099.SmartPharma.common.exception.ErrorCode;
-import com.nchuy099.SmartPharma.inventory.entity.InventoryLotEntity;
+import com.nchuy099.SmartPharma.order.domain.entity.OrderItemEntity;
+import com.nchuy099.SmartPharma.product.entity.ProductVariantEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,18 +21,26 @@ import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 @Entity
-@Table(name = "order_item_inventory_allocations")
+@Table(name = "inventory_reservation_items")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class OrderItemInventoryAllocationEntity extends AbstractEntity {
+public class InventoryReservationItemEntity extends AbstractEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reservation_id", nullable = false)
+    InventoryReservationEntity reservation;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_item_id", nullable = false)
     OrderItemEntity orderItem;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id", nullable = false)
+    ProductVariantEntity variant;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lot_id", nullable = false)
@@ -43,6 +53,13 @@ public class OrderItemInventoryAllocationEntity extends AbstractEntity {
     @Builder.Default
     Integer exportedQuantity = 0;
 
+    @Column(name = "unit_cost")
+    BigDecimal unitCost;
+
+    public int getRemainingReservedQuantity() {
+        return reservedQuantity - exportedQuantity;
+    }
+
     public void markExported(int quantity) {
         if (quantity <= 0) {
             throw new AppException(ErrorCode.CONFLICT, "Quantity must be > 0");
@@ -50,10 +67,6 @@ public class OrderItemInventoryAllocationEntity extends AbstractEntity {
         if (exportedQuantity + quantity > reservedQuantity) {
             throw new AppException(ErrorCode.CONFLICT, "Export quantity exceeds reserved quantity");
         }
-        this.exportedQuantity += quantity;
-    }
-
-    public int getRemainingReservedQuantity() {
-        return reservedQuantity - exportedQuantity;
+        exportedQuantity += quantity;
     }
 }
