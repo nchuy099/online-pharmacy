@@ -1,6 +1,6 @@
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { useCreateCheckout } from "../hooks/useCreateCheckout"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { FaShoppingBasket, FaArrowLeft, FaShieldAlt, FaExclamationTriangle, FaTruck } from "react-icons/fa"
 import type { OrderMode, PaymentMethod } from "../types/order.constant"
 import { PaymentSelection } from "../components/PaymentSelection"
@@ -12,6 +12,7 @@ export const CheckoutPage = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [orderError, setOrderError] = useState<string | null>(null);
+    const createOrderIdempotencyKeyRef = useRef<string | null>(null);
 
     const { mutate: createOrder, isPending: isCreatingOrder } = useCreateOrder();
     const { mutate: createCheckout, isPending: isPendingCheckout, isError, error } = useCreateCheckout();
@@ -121,8 +122,12 @@ export const CheckoutPage = () => {
             setOrderError("Vui lòng chọn địa chỉ và phương thức vận chuyển để tạo bản nháp đơn hàng.");
             return;
         }
+        if (!createOrderIdempotencyKeyRef.current) {
+            createOrderIdempotencyKeyRef.current = crypto.randomUUID();
+        }
         createOrder(
             {
+                req: {
                 checkoutQuoteId: checkoutData.checkoutQuoteId,
                 paymentMethod,
                 mode,
@@ -131,6 +136,8 @@ export const CheckoutPage = () => {
                     : undefined,
                 note: note.trim() || undefined,
                 flashSaleReservationId: flashSaleReservationId || undefined,
+                },
+                idempotencyKey: createOrderIdempotencyKeyRef.current,
             },
             {
                 onSuccess: (data: Order) => {
@@ -141,6 +148,7 @@ export const CheckoutPage = () => {
                     }
                 },
                 onError: (err: Error) => {
+                    createOrderIdempotencyKeyRef.current = null;
                     setOrderError(err.message || "Đã có lỗi xảy ra khi tạo đơn hàng.");
                 }
             }

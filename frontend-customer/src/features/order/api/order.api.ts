@@ -18,8 +18,10 @@ export const OrderApi = {
         return res.data.data;
     },
 
-    create: async (data: CreateOrderReqDTO): Promise<RawOrderResp> => {
-        const res = await axios.post<ApiResponse<RawOrderResp>>("/orders/create", data);
+    create: async (data: CreateOrderReqDTO, idempotencyKey?: string): Promise<RawOrderResp> => {
+        const res = await axios.post<ApiResponse<RawOrderResp>>("/orders/create", data, {
+            headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+        });
         if (!res.data.success) {
             throw new Error(res.data.error || "Create order failed");
         }

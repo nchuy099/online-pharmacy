@@ -21,9 +21,10 @@ export const orderService = {
     },
 
     create: async (
-        data: CreateOrderReqDTO
+        data: CreateOrderReqDTO,
+        idempotencyKey?: string
     ): Promise<Order> => {
-        const resp = await OrderApi.create(data);
+        const resp = await OrderApi.create(data, idempotencyKey);
         return mapOrderDetailsResponse(resp);
     },
 

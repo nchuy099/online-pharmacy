@@ -4,7 +4,8 @@ import type { CreateOrderReqDTO } from "../types/dto"
 
 export const useCreateOrder = () => {
     return useMutation({
-        mutationFn: (req: CreateOrderReqDTO) => orderService.create(req)
+        mutationFn: ({ req, idempotencyKey }: { req: CreateOrderReqDTO; idempotencyKey?: string }) =>
+            orderService.create(req, idempotencyKey)
     });
 }
 

@@ -5,8 +5,8 @@ import type { CreateOrderReqDTO } from "../types/dto";
 export const useCreateOrder = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: CreateOrderReqDTO) =>
-            orderService.create(req),
+        mutationFn: ({ req, idempotencyKey }: { req: CreateOrderReqDTO; idempotencyKey?: string }) =>
+            orderService.create(req, idempotencyKey),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["orders"] });
         }
